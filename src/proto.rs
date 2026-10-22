@@ -586,13 +586,19 @@ mod tests {
     #[test]
     fn klypix_info_is_held_to_its_limits() {
         let tidy = |project: &str, intent: &str, files: &[&str]| {
-            KlypixInfo { project: project.into(), intent: intent.into(), files: files.iter().map(|f| f.to_string()).collect() }
-                .tidy()
+            KlypixInfo {
+                project: project.into(),
+                intent: intent.into(),
+                files: files.iter().map(|f| f.to_string()).collect(),
+            }
+            .tidy()
         };
         assert_eq!(tidy("  !!  ", "x", &[]), None, "no usable project");
-        let k = tidy("Git:ABC def/../", "line one\nline two", &[
-            "src/a.rs", "src\\b.rs", "./c.rs", "/etc/passwd", "C:/Users/me/x", "../up", "src/../x", "src/a.rs", "",
-        ])
+        let k = tidy(
+            "Git:ABC def/../",
+            "line one\nline two",
+            &["src/a.rs", "src\\b.rs", "./c.rs", "/etc/passwd", "C:/Users/me/x", "../up", "src/../x", "src/a.rs", ""],
+        )
         .unwrap();
         assert_eq!(k.project, "git:abcdef");
         assert!(!k.intent.contains('\n'));
