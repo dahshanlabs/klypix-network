@@ -439,7 +439,7 @@ fn clip(text: &str, max: usize) -> String {
 }
 
 /// The program that shows the question, or finds where to: in a release build only the system's own, so an agent can't
-/// start this machine's engine with one that answers for its person. (Debug builds take `REASON_NETWORK_<NAME>_BIN`.)
+/// start this machine's engine with one that answers for its person. (Debug builds take `KLYPIX_NETWORK_<NAME>_BIN`.)
 pub(super) fn asker_bin(name: &str, system: &[&str]) -> Option<std::path::PathBuf> {
     if cfg!(debug_assertions) {
         return crate::agent::find_bin(name);
@@ -467,7 +467,7 @@ fn dialog(title: &str, request: &str, question: &str) -> Option<Command> {
         if request.is_empty() { question.to_string() } else { format!("{request}\n\nYour agent asks: {question}") };
     let mut cmd =
         notify_send_at(asker_bin("notify-send", &["/usr/bin/notify-send", "/run/current-system/sw/bin/notify-send"])?)?;
-    cmd.args(["--app-name=Reason Network", "--wait", "--action=approve=Approve", "--action=deny=Deny"])
+    cmd.args(["--app-name=KLYPIX network", "--wait", "--action=approve=Approve", "--action=deny=Deny"])
         .arg(format!("--expire-time={}", OPEN_SECS * 1000))
         .args(["--".into(), markup(title), markup(&body)]);
     Some(cmd)

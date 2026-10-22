@@ -1,11 +1,11 @@
-//! A machine that ran tincan on its own moves over once. tincan's last update installed reason-network beside it,
+//! A machine that ran tincan on its own moves over once. tincan's last update installed klypix-network beside it,
 //! with a copy under the old name for what still starts that: the old login service, agents' configs, and the old
 //! updater checking the version. `paths` has already moved the state; the daemon's first start here rewires the
 //! agents and swaps the login service. Agent sessions started before keep working until they end.
 
 use crate::{AGENT_NAME, LEGACY_NAME, paths, setup, util};
 
-/// Started under the old name, runs as reason-network instead, so everything after this is our own binary.
+/// Started under the old name, runs as klypix-network instead, so everything after this is our own binary.
 pub fn as_ours() {
     let Ok(me) = util::current_exe() else { return };
     let ours = me.with_file_name(format!("{AGENT_NAME}{}", std::env::consts::EXE_SUFFIX));

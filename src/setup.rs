@@ -1,4 +1,4 @@
-//! `setup`: wires Reason Network into every agent on this machine (MCP server, plus hooks where the agent has them) and
+//! `setup`: wires KLYPIX network into every agent on this machine (MCP server, plus hooks where the agent has them) and
 //! installs the daemon as a login service. `setup --remove` undoes it. Every file it edits
 //! is backed up once, as `<file>.bak-reason`. Also `doctor`.
 //!
@@ -14,10 +14,10 @@ use std::{
     process::Command,
 };
 
-/// The service's name. A non-default `REASON_NETWORK_HOME` gets its own, so a second instance (or a test) can never
+/// The service's name. A non-default `KLYPIX_NETWORK_HOME` gets its own, so a second instance (or a test) can never
 /// replace the real one.
 fn service_name() -> String {
-    service_label("com.reasonmachines.network")
+    service_label("com.klypix.network")
 }
 
 /// The upstream engine's service name, which this binary ran under before.
@@ -49,8 +49,8 @@ pub fn exe() -> Result<PathBuf> {
     Ok(exe.canonicalize()?)
 }
 
-/// The command line agents run through a shell: `'/path/to/reason-network' hook codex stop`. On Windows that shell is
-/// PowerShell (`& 'C:\Users\Alex Smith\…\reason-network.exe' hook codex stop`), and a path that needs no quotes also runs in
+/// The command line agents run through a shell: `'/path/to/klypix-network' hook codex stop`. On Windows that shell is
+/// PowerShell (`& 'C:\Users\Alex Smith\…\klypix-network.exe' hook codex stop`), and a path that needs no quotes also runs in
 /// cmd.exe.
 pub fn shell_cmd(exe: &Path, args: &str) -> String {
     let p = exe.display().to_string();
@@ -128,7 +128,7 @@ fn write_file(path: &Path, content: &str, dry: bool) -> Result<bool> {
 }
 
 fn write_json(path: &Path, v: &Value, dry: bool) -> Result<bool> {
-    // Removing Reason Network from a config that never existed leaves an empty shell: don't create a file for that.
+    // Removing KLYPIX network from a config that never existed leaves an empty shell: don't create a file for that.
     if !path.exists() && hollow(v) {
         return Ok(false);
     }
@@ -344,9 +344,9 @@ fn codex(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
         t["command"] = toml_edit::value(exe.display().to_string());
         t["args"] = toml_edit::value(toml_edit::Array::from_iter(["mcp"]));
         let mut env = toml_edit::InlineTable::new();
-        env.insert("REASON_NETWORK_AGENT", "codex".into());
+        env.insert("KLYPIX_NETWORK_AGENT", "codex".into());
         if let Ok(h) = crate::paths::env_var("HOME") {
-            env.insert("REASON_NETWORK_HOME", h.into());
+            env.insert("KLYPIX_NETWORK_HOME", h.into());
         }
         t["env"] = toml_edit::value(env);
         // Room for check_inbox(wait_secs) long-polls.
@@ -376,7 +376,7 @@ fn codex(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     let did = write_json(&hooks_path, &v, dry)?;
     r.lines.push(changed(&hooks_path, did));
     if did && !remove {
-        r.notes.push("Codex asks once to trust Reason Network's hooks: choose \"Trust all and continue\".".into());
+        r.notes.push("Codex asks once to trust KLYPIX network's hooks: choose \"Trust all and continue\".".into());
     }
     Ok(Some(r))
 }
@@ -412,9 +412,9 @@ fn grok(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
         t["command"] = toml_edit::value(exe.display().to_string());
         t["args"] = toml_edit::value(toml_edit::Array::from_iter(["mcp"]));
         let mut env = toml_edit::InlineTable::new();
-        env.insert("REASON_NETWORK_AGENT", "grok".into());
+        env.insert("KLYPIX_NETWORK_AGENT", "grok".into());
         if let Ok(h) = crate::paths::env_var("HOME") {
-            env.insert("REASON_NETWORK_HOME", h.into());
+            env.insert("KLYPIX_NETWORK_HOME", h.into());
         }
         t["env"] = toml_edit::value(env);
         t["enabled"] = toml_edit::value(true);
@@ -500,7 +500,7 @@ fn cursor(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     } else {
         servers.insert(
             AGENT_NAME.into(),
-            json!({ "type": "stdio", "command": exe.display().to_string(), "args": ["mcp"], "env": { "REASON_NETWORK_AGENT": "cursor" } }),
+            json!({ "type": "stdio", "command": exe.display().to_string(), "args": ["mcp"], "env": { "KLYPIX_NETWORK_AGENT": "cursor" } }),
         );
     }
     r.lines.push(changed(&mcp_path, write_json(&mcp_path, &v, dry)?));
@@ -540,7 +540,7 @@ fn gemini(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     } else {
         servers.insert(
             AGENT_NAME.into(),
-            json!({ "command": exe.display().to_string(), "args": ["mcp"], "env": { "REASON_NETWORK_AGENT": "gemini" }, "timeout": 660000, "trust": true }),
+            json!({ "command": exe.display().to_string(), "args": ["mcp"], "env": { "KLYPIX_NETWORK_AGENT": "gemini" }, "timeout": 660000, "trust": true }),
         );
     }
     let group = |event: &str, timeout: u64| json!({ "matcher": "*", "hooks": [{ "type": "command", "name": format!("{AGENT_NAME}-{event}"), "command": shell_cmd(exe, &format!("hook gemini {event}")), "timeout": timeout }] });
@@ -555,7 +555,7 @@ fn gemini(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     let did = write_json(&path, &v, dry)?;
     r.lines.push(changed(&path, did));
     if did && !remove {
-        r.notes.push("Gemini CLI only runs Reason Network in trusted folders (`/permissions trust`).".into());
+        r.notes.push("Gemini CLI only runs KLYPIX network in trusted folders (`/permissions trust`).".into());
     }
     Ok(Some(r))
 }
@@ -577,7 +577,7 @@ fn copilot(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     } else {
         servers.insert(
             AGENT_NAME.into(),
-            json!({ "type": "local", "command": exe.display().to_string(), "args": ["mcp"], "env": { "REASON_NETWORK_AGENT": "copilot" }, "tools": ["*"], "timeout": 660000 }),
+            json!({ "type": "local", "command": exe.display().to_string(), "args": ["mcp"], "env": { "KLYPIX_NETWORK_AGENT": "copilot" }, "tools": ["*"], "timeout": 660000 }),
         );
     }
     r.lines.push(changed(&mcp_path, write_json(&mcp_path, &v, dry)?));
@@ -617,7 +617,7 @@ fn opencode(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     let path = dir.join("opencode.json");
     if dir.join("opencode.jsonc").exists() && !path.exists() {
         r.notes.push(format!(
-            "opencode: you use opencode.jsonc, which Reason Network doesn't edit. Add under \"mcp\": \"{AGENT_NAME}\": {{\"type\": \"local\", \"command\": [\"{}\", \"mcp\"], \"environment\": {{\"REASON_NETWORK_AGENT\": \"opencode\"}}}}",
+            "opencode: you use opencode.jsonc, which KLYPIX network doesn't edit. Add under \"mcp\": \"{AGENT_NAME}\": {{\"type\": \"local\", \"command\": [\"{}\", \"mcp\"], \"environment\": {{\"KLYPIX_NETWORK_AGENT\": \"opencode\"}}}}",
             exe.display()
         ));
     } else {
@@ -629,7 +629,7 @@ fn opencode(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
         } else {
             mcp.insert(
                 AGENT_NAME.into(),
-                json!({ "type": "local", "command": [exe.display().to_string(), "mcp"], "environment": { "REASON_NETWORK_AGENT": "opencode" }, "enabled": true }),
+                json!({ "type": "local", "command": [exe.display().to_string(), "mcp"], "environment": { "KLYPIX_NETWORK_AGENT": "opencode" }, "enabled": true }),
             );
         }
         r.lines.push(changed(&path, write_json(&path, &v, dry)?));
@@ -653,7 +653,7 @@ fn opencode(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
 
 // ---- pi ----
 
-/// One extension does it all: it adds Reason Network's MCP server to each session (deferred, so the tools stay out of
+/// One extension does it all: it adds KLYPIX network's MCP server to each session (deferred, so the tools stay out of
 /// the model's context until it looks for them) and delivers messages.
 fn pi(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     if !pi_home().exists() && agent::find_bin("pi").is_none() {
@@ -679,8 +679,8 @@ fn pi(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
 
 // ---- DeepSeek Harness (dsh) ----
 
-const DSH_BEGIN: &str = "# === reason-network MCP BEGIN ===";
-const DSH_END: &str = "# === reason-network MCP END ===";
+const DSH_BEGIN: &str = "# === klypix-network MCP BEGIN ===";
+const DSH_END: &str = "# === klypix-network MCP END ===";
 
 fn dsh_home() -> PathBuf {
     // dsh takes a blank `DSH_HOME` for unset, spaces included.
@@ -707,7 +707,7 @@ fn dsh_block(exe: &Path) -> String {
     format!(
         "{DSH_BEGIN}\n- insert:\n    - id: mcp-{AGENT_NAME}\n      name: '@deepseek-ai/dsh-mcp-client'\n      config:\n        \
          serverName: {AGENT_NAME}\n        transport: stdio\n        command: '{command}'\n        args:\n          - mcp\n        \
-         env:\n          REASON_NETWORK_AGENT: dsh\n        toolCallTimeoutMs: 660000\n{DSH_END}\n"
+         env:\n          KLYPIX_NETWORK_AGENT: dsh\n        toolCallTimeoutMs: 660000\n{DSH_END}\n"
     )
 }
 
@@ -720,7 +720,7 @@ fn dsh_entries(text: &str) -> Vec<&str> {
     text.lines().filter(|l| !l.trim().is_empty() && !l.trim_start().starts_with('#')).collect()
 }
 
-/// Whether an entry of the file (not a comment) names an MCP server `reason-network`, quoted or not.
+/// Whether an entry of the file (not a comment) names an MCP server `klypix-network`, quoted or not.
 fn dsh_has_server(text: &str) -> bool {
     dsh_entries(text).iter().any(|l| {
         let line = l.trim_start().trim_start_matches("- ").trim_start();
@@ -799,7 +799,7 @@ fn dsh(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
             r.lines.push(changed(&path, write_file(&path, &new, dry)?));
             if !remove {
                 r.notes.push(
-                    "DeepSeek Harness reads Reason Network messages when it checks its inbox; start a new dsh session to load the MCP server."
+                    "DeepSeek Harness reads KLYPIX network messages when it checks its inbox; start a new dsh session to load the MCP server."
                         .into(),
                 );
             }
@@ -972,10 +972,10 @@ async fn install_service(exe: &Path, remove: bool, dry: bool, stop: bool) -> Res
             return Ok("removed the login service".into());
         }
         let home_env = engine_home
-            .map(|h| format!("\n    <key>REASON_NETWORK_HOME</key><string>{}</string>", xml(&h)))
+            .map(|h| format!("\n    <key>KLYPIX_NETWORK_HOME</key><string>{}</string>", xml(&h)))
             .unwrap_or_default()
             + &reason_bin
-                .map(|b| format!("\n    <key>REASON_NETWORK_REASON_BIN</key><string>{}</string>", xml(&b)))
+                .map(|b| format!("\n    <key>KLYPIX_NETWORK_REASON_BIN</key><string>{}</string>", xml(&b)))
                 .unwrap_or_default();
         let plist = format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -1048,12 +1048,12 @@ async fn install_service(exe: &Path, remove: bool, dry: bool, stop: bool) -> Res
         // systemd expands `%` specifiers and reads `\` and `"` as escapes inside a quoted value.
         let value = |v: &str| v.replace('%', "%%").replace('\\', "\\\\").replace('"', "\\\"");
         let home_env =
-            engine_home.map(|h| format!("Environment=\"REASON_NETWORK_HOME={}\"\n", value(&h))).unwrap_or_default()
+            engine_home.map(|h| format!("Environment=\"KLYPIX_NETWORK_HOME={}\"\n", value(&h))).unwrap_or_default()
                 + &reason_bin
-                    .map(|b| format!("Environment=\"REASON_NETWORK_REASON_BIN={}\"\n", value(&b)))
+                    .map(|b| format!("Environment=\"KLYPIX_NETWORK_REASON_BIN={}\"\n", value(&b)))
                     .unwrap_or_default();
         let unit = format!(
-            "[Unit]\nDescription=Reason Network daemon\n\n[Service]\nExecStart={} daemon --service\nRestart=always\nRestartSec=3\nEnvironment=\"PATH={}\"\n{home_env}StandardError=append:{}\n\n[Install]\nWantedBy=default.target\n",
+            "[Unit]\nDescription=KLYPIX network daemon\n\n[Service]\nExecStart={} daemon --service\nRestart=always\nRestartSec=3\nEnvironment=\"PATH={}\"\n{home_env}StandardError=append:{}\n\n[Install]\nWantedBy=default.target\n",
             shell_cmd(exe, "").trim_end().replace('%', "%%"),
             value(&service_path_env()),
             paths::log().display().to_string().replace('%', "%%")
@@ -1150,7 +1150,7 @@ async fn service(exe: &Path, remove: bool, dry: bool) -> Result<String> {
     }
     // Windows starts it with its command line and nothing else.
     if crate::paths::env_var_os("HOME").is_some() {
-        return Err(anyhow!("a logon entry can't set REASON_NETWORK_HOME"));
+        return Err(anyhow!("a logon entry can't set KLYPIX_NETWORK_HOME"));
     }
     let command = format!("\"{}\" daemon --service", exe.display());
     let did = !run_entry().is_some_and(|v| contains(&v, &command));
@@ -1349,7 +1349,7 @@ pub struct Applied {
     pub service: Option<bool>,
 }
 
-/// Wires Reason Network into the `install` agents and out of the `remove` ones; installs (`Some(true)`) or removes
+/// Wires KLYPIX network into the `install` agents and out of the `remove` ones; installs (`Some(true)`) or removes
 /// (`Some(false)`) the login service.
 pub async fn apply(exe: &Path, install: &[&str], remove: &[&str], service: Option<bool>, dry: bool) -> Applied {
     let mut out = Applied::default();
@@ -1373,7 +1373,7 @@ pub async fn apply(exe: &Path, install: &[&str], remove: &[&str], service: Optio
     }
     if let Some(on) = service {
         if crate::paths::env_var_os("NO_SERVICE").is_some() {
-            out.lines.push("service: skipped (REASON_NETWORK_NO_SERVICE is set)".into());
+            out.lines.push("service: skipped (KLYPIX_NETWORK_NO_SERVICE is set)".into());
             return out;
         }
         match self::service(exe, !on, dry).await {
@@ -1383,7 +1383,7 @@ pub async fn apply(exe: &Path, install: &[&str], remove: &[&str], service: Optio
             }
             Err(e) => {
                 out.notes
-                    .push(format!("Not running in the background: {e:#}; Reason Network starts it when you use it."));
+                    .push(format!("Not running in the background: {e:#}; KLYPIX network starts it when you use it."));
             }
         }
     }
@@ -1397,9 +1397,9 @@ pub async fn run(dry: bool, remove: bool, no_service: bool) -> Result<()> {
     let verb = if dry {
         "Would change"
     } else if remove {
-        "Removing Reason Network"
+        "Removing KLYPIX network"
     } else {
-        "Setting up Reason Network"
+        "Setting up KLYPIX network"
     };
     println!("{verb} ({}):", crate::util::tilde(&exe.display().to_string()));
     if found.is_empty() && !remove {
@@ -1432,7 +1432,7 @@ pub async fn quietly() -> Result<Vec<&'static str>> {
 /// Read-only checks, one line each.
 pub async fn doctor() -> Result<()> {
     let exe = exe()?;
-    println!("reason-network {} at {}", env!("CARGO_PKG_VERSION"), crate::util::tilde(&exe.display().to_string()));
+    println!("klypix-network {} at {}", env!("CARGO_PKG_VERSION"), crate::util::tilde(&exe.display().to_string()));
     let link = Link::new(None);
     match link.call::<TeamInfo>(Request::Team).await {
         Ok(t) => {
@@ -1467,7 +1467,7 @@ pub async fn doctor() -> Result<()> {
     let cfg = crate::config::Config::load();
     let (odd, off): (Vec<_>, Vec<_>) = cfg.folders.iter().partition(|e| cfg.odd_folders().contains(e));
     if !off.is_empty() {
-        println!("- Reason Network is off in {}", off.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>().join(", "));
+        println!("- KLYPIX network is off in {}", off.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>().join(", "));
     }
     for (k, v) in odd {
         let why = if v == "off" { "not a full path" } else { "\"off\" is the only setting so far" };
@@ -1483,7 +1483,7 @@ pub async fn doctor() -> Result<()> {
         if f.wired {
             println!("✓ {}: wired up", f.name);
         } else {
-            println!("- {}: installed, not on Reason Network (`{CLI} setup`)", f.name);
+            println!("- {}: installed, not on KLYPIX network (`{CLI} setup`)", f.name);
         }
     }
     Ok(())
@@ -1498,12 +1498,12 @@ mod tests {
         let mut doc: toml_edit::DocumentMut = "[permission]\nallow = [\"Bash(ls)\"]\n".parse().unwrap();
         grok_allow(&mut doc, false);
         grok_allow(&mut doc, false);
-        assert_eq!(doc.to_string(), "[permission]\nallow = [\"Bash(ls)\", \"MCPTool(reason-network__*)\"]\n");
+        assert_eq!(doc.to_string(), "[permission]\nallow = [\"Bash(ls)\", \"MCPTool(klypix-network__*)\"]\n");
         grok_allow(&mut doc, true);
         assert_eq!(doc.to_string(), "[permission]\nallow = [\"Bash(ls)\"]\n");
         let mut doc = toml_edit::DocumentMut::new();
         grok_allow(&mut doc, false);
-        assert!(doc.to_string().contains("MCPTool(reason-network__*)"));
+        assert!(doc.to_string().contains("MCPTool(klypix-network__*)"));
         grok_allow(&mut doc, true);
         assert_eq!(doc.to_string(), "");
     }
@@ -1512,10 +1512,10 @@ mod tests {
     fn hook_groups_merge_and_remove() {
         let mut hooks = serde_json::from_value::<Map<String, Value>>(json!({
             "Stop": [{ "hooks": [{ "type": "command", "command": "other-tool stop" }] }],
-            "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "/x/reason-network hook codex post-tool-use" }] }],
+            "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "/x/klypix-network hook codex post-tool-use" }] }],
         }))
         .unwrap();
-        let ours = |e: &str| json!({ "hooks": [{ "type": "command", "command": format!("/y/reason-network hook codex {e} ") }] });
+        let ours = |e: &str| json!({ "hooks": [{ "type": "command", "command": format!("/y/klypix-network hook codex {e} ") }] });
         merge_hook_groups(
             &mut hooks,
             "codex",
@@ -1533,20 +1533,20 @@ mod tests {
 
     #[test]
     fn dsh_patch_gets_our_block_once_and_loses_it_again() {
-        let block = dsh_block(Path::new("/usr/local/bin/reason-network"));
+        let block = dsh_block(Path::new("/usr/local/bin/klypix-network"));
         let with = dsh_patch_text(DSH_PATCH, &block, false).unwrap().unwrap();
         assert!(with.starts_with(DSH_PATCH) && with.contains(&block), "{with}");
         assert_eq!(dsh_patch_text(&with, &block, false).unwrap(), None, "already there");
-        let moved = dsh_block(Path::new("/opt/reason-network"));
+        let moved = dsh_block(Path::new("/opt/klypix-network"));
         let updated = dsh_patch_text(&with, &moved, false).unwrap().unwrap();
-        assert!(updated.contains("/opt/reason-network") && !updated.contains("/usr/local/bin"), "{updated}");
+        assert!(updated.contains("/opt/klypix-network") && !updated.contains("/usr/local/bin"), "{updated}");
         assert_eq!(dsh_patch_text(&with, &block, true).unwrap().as_deref(), Some(DSH_PATCH), "removal restores it");
         assert_eq!(dsh_patch_text(DSH_PATCH, &block, true).unwrap(), None, "nothing to remove");
     }
 
     #[test]
     fn dsh_patch_stays_a_list_when_our_block_goes() {
-        let block = dsh_block(Path::new("/x/reason-network"));
+        let block = dsh_block(Path::new("/x/klypix-network"));
         // What dsh ships: comments and an empty list. Without the list dsh refuses to start.
         let shipped = "# patch layer\n[]\n";
         let with = dsh_patch_text(shipped, &block, false).unwrap().unwrap();
@@ -1560,7 +1560,7 @@ mod tests {
 
     #[test]
     fn dsh_patch_only_takes_a_top_level_list() {
-        let block = dsh_block(Path::new("/x/reason-network"));
+        let block = dsh_block(Path::new("/x/klypix-network"));
         // Appending to any of these would leave a file dsh can't parse.
         assert!(dsh_patch_text("  - id: a\n    name: b\n", &block, false).is_err(), "indented list");
         assert!(dsh_patch_text("---\n[]\n", &block, false).is_err(), "document marker");
@@ -1571,24 +1571,24 @@ mod tests {
 
     #[test]
     fn dsh_patch_leaves_a_server_of_the_users_own_alone() {
-        let block = dsh_block(Path::new("/x/reason-network"));
-        let own = "- insert:\n    - id: my-rn\n      name: '@deepseek-ai/dsh-mcp-client'\n      config:\n        serverName: reason-network\n";
+        let block = dsh_block(Path::new("/x/klypix-network"));
+        let own = "- insert:\n    - id: my-rn\n      name: '@deepseek-ai/dsh-mcp-client'\n      config:\n        serverName: klypix-network\n";
         let why = dsh_patch_text(own, &block, false).unwrap_err().to_string();
         assert!(why.contains("of your own"), "{why}");
         assert_eq!(dsh_patch_text(own, &block, true).unwrap(), None, "`--remove` leaves it");
         // However YAML quotes the name; a comment about it is not a server.
-        for quoted in ["\"reason-network\"", "'reason-network'", "reason-network # mine"] {
+        for quoted in ["\"klypix-network\"", "'klypix-network'", "klypix-network # mine"] {
             let own = format!("- insert:\n    - config:\n        serverName: {quoted}\n");
             assert!(dsh_patch_text(&own, &block, false).is_err(), "{quoted}");
         }
-        let commented = "# serverName: reason-network\n- id: agent-loop\n";
+        let commented = "# serverName: klypix-network\n- id: agent-loop\n";
         assert!(dsh_patch_text(commented, &block, false).unwrap().unwrap().contains(&block), "commented out");
-        assert!(!dsh_wired("# serverName: reason-network\n", Path::new("/x/reason-network")));
+        assert!(!dsh_wired("# serverName: klypix-network\n", Path::new("/x/klypix-network")));
     }
 
     #[test]
     fn dsh_patch_that_is_only_the_empty_list_round_trips() {
-        let block = dsh_block(Path::new("/x/reason-network"));
+        let block = dsh_block(Path::new("/x/klypix-network"));
         let with = dsh_patch_text("[]\n", &block, false).unwrap().unwrap();
         assert_eq!(with, block, "no blank line above our block");
         assert_eq!(dsh_patch_text(&with, &block, true).unwrap().as_deref(), Some("[]\n"));
@@ -1596,46 +1596,46 @@ mod tests {
 
     #[test]
     fn dsh_wiring_is_found_through_the_yaml_quote() {
-        let exe = Path::new(r"C:\Users\O'Neil\reason-network.exe");
+        let exe = Path::new(r"C:\Users\O'Neil\klypix-network.exe");
         let block = dsh_block(exe);
-        assert!(block.contains(r"'C:\Users\O''Neil\reason-network.exe'"), "{block}");
+        assert!(block.contains(r"'C:\Users\O''Neil\klypix-network.exe'"), "{block}");
         assert!(dsh_wired(&block, exe));
-        assert!(!dsh_wired(&block, Path::new(r"C:\Users\other\reason-network.exe")));
+        assert!(!dsh_wired(&block, Path::new(r"C:\Users\other\klypix-network.exe")));
         assert!(!dsh_wired("", exe));
     }
 
     #[test]
     #[cfg(unix)]
     fn quoting() {
-        assert_eq!(shell_cmd(Path::new("/usr/local/bin/reason-network"), "mcp"), "/usr/local/bin/reason-network mcp");
-        assert_eq!(shell_cmd(Path::new("/Users/a b/reason-network"), "mcp"), "'/Users/a b/reason-network' mcp");
+        assert_eq!(shell_cmd(Path::new("/usr/local/bin/klypix-network"), "mcp"), "/usr/local/bin/klypix-network mcp");
+        assert_eq!(shell_cmd(Path::new("/Users/a b/klypix-network"), "mcp"), "'/Users/a b/klypix-network' mcp");
     }
 
     #[test]
     #[cfg(windows)]
     fn quoting() {
         assert_eq!(
-            shell_cmd(Path::new(r"C:\Users\alex\.local\bin\reason-network.exe"), "mcp"),
-            r"C:\Users\alex\.local\bin\reason-network.exe mcp"
+            shell_cmd(Path::new(r"C:\Users\alex\.local\bin\klypix-network.exe"), "mcp"),
+            r"C:\Users\alex\.local\bin\klypix-network.exe mcp"
         );
         assert_eq!(
-            shell_cmd(Path::new(r"C:\Users\Alex O'Neil\reason-network.exe"), "mcp"),
-            r"& 'C:\Users\Alex O''Neil\reason-network.exe' mcp"
+            shell_cmd(Path::new(r"C:\Users\Alex O'Neil\klypix-network.exe"), "mcp"),
+            r"& 'C:\Users\Alex O''Neil\klypix-network.exe' mcp"
         );
-        assert_eq!(me(Path::new(r"C:\a\reason-network.exe")), r"C:\\a\\reason-network.exe");
+        assert_eq!(me(Path::new(r"C:\a\klypix-network.exe")), r"C:\\a\\klypix-network.exe");
     }
 
     #[test]
     #[cfg(windows)]
     fn paths_match_whatever_their_case() {
-        let exe = Path::new(r"D:\Program Files\reason-network\reason-network.exe");
-        assert!(ours(r"command = 'D:\program files\reason-network\reason-network.exe'", exe));
-        assert!(ours(r#""command": "d:\\PROGRAM FILES\\reason-network\\reason-network.exe""#, exe));
-        assert!(same_path(r"D:\program files\reason-network\reason-network.exe", exe));
-        assert!(!same_path(r"D:\program files\reason-network\other.exe", exe));
+        let exe = Path::new(r"D:\Program Files\klypix-network\klypix-network.exe");
+        assert!(ours(r"command = 'D:\program files\klypix-network\klypix-network.exe'", exe));
+        assert!(ours(r#""command": "d:\\PROGRAM FILES\\klypix-network\\klypix-network.exe""#, exe));
+        assert!(same_path(r"D:\program files\klypix-network\klypix-network.exe", exe));
+        assert!(!same_path(r"D:\program files\klypix-network\other.exe", exe));
         // Both fold case beyond ASCII, as Windows does: one spelling can't match in one and not the other.
-        let exe = Path::new(r"C:\Users\Jörg\reason-network.exe");
-        assert!(ours(r"command = 'C:\USERS\JÖRG\reason-network.exe'", exe));
-        assert!(same_path(r"C:\USERS\JÖRG\reason-network.exe", exe));
+        let exe = Path::new(r"C:\Users\Jörg\klypix-network.exe");
+        assert!(ours(r"command = 'C:\USERS\JÖRG\klypix-network.exe'", exe));
+        assert!(same_path(r"C:\USERS\JÖRG\klypix-network.exe", exe));
     }
 }

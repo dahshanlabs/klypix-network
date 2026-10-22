@@ -29,7 +29,7 @@ enum Channel {
     ClaudeSocket(u64),
     /// The agent's own CLI: `codex queue --thread <id> --message`, `reason session send <id> --message`.
     Command(&'static str, Vec<String>),
-    /// Straight into a Claude Code session's messaging socket (one without Reason Network's tools: it replies with the CLI).
+    /// Straight into a Claude Code session's messaging socket (one without KLYPIX network's tools: it replies with the CLI).
     ClaudeDirect(agent::ClaudeSocket),
     /// Hooks inject it at the next tool call or turn end.
     Hook,
@@ -69,7 +69,7 @@ impl Inner {
 type RemoteJob = (usize, EndpointId, String, bool, Message);
 
 const UPGRADE: &str =
-    "update Reason Network (with the Reason CLI, `reason update`): messages go between agent sessions now";
+    "update KLYPIX network (with the Reason CLI, `reason update`): messages go between agent sessions now";
 
 const LOOP_NOTE: &str = "refused: these two agents have exchanged a lot of messages in the last few minutes, which \
                          looks like a loop. Check with your user before continuing.";
@@ -459,7 +459,7 @@ impl Daemon {
             .and_then(|t| t.member(&peer).map(|m| m.person.clone()))
             .ok_or_else(|| anyhow!("not a team member"))?;
         let mut msg = clean(msg)?;
-        // Messages go between agent sessions (or, with notify, to a person's screen); an older Reason Network may still send
+        // Messages go between agent sessions (or, with notify, to a person's screen); an older KLYPIX network may still send
         // to or from a person.
         if !msg.from.contains('/') || (!msg.to.contains('/') && !msg.notify) {
             bail!(UPGRADE);
@@ -520,7 +520,7 @@ impl Daemon {
             if !g.loop_ok(&msg.from, &msg.to) {
                 return Ok(("refused".into(), LOOP_NOTE.into()));
             }
-            // Only an older Reason Network still sends an agent's group message; a teammate's isn't taken.
+            // Only an older KLYPIX network still sends an agent's group message; a teammate's isn't taken.
             let sender = msg.from.split_once('/').map_or(msg.from.as_str(), |(p, _)| p);
             if msg.via.is_some() && !msg.from.ends_with("/terminal") && sender != self.person {
                 let note = format!("refused: agents message one of {}'s sessions, not a group", self.person);
@@ -645,7 +645,7 @@ impl Drop for Polling<'_> {
 
 pub(super) fn unregistered() -> anyhow::Error {
     anyhow!(
-        "this session isn't registered with Reason Network; restart the agent session, or use the reason-network tools"
+        "this session isn't registered with KLYPIX network; restart the agent session, or use the klypix-network tools"
     )
 }
 
@@ -695,7 +695,7 @@ fn for_machine(mut msg: Message, takes_files: bool) -> Result<Message, String> {
             (msg.body, msg.files) = (body, Vec::new());
             Ok(msg)
         }
-        None => Err(format!("{} needs to update Reason Network to receive files", msg.to)),
+        None => Err(format!("{} needs to update KLYPIX network to receive files", msg.to)),
     }
 }
 
@@ -825,11 +825,11 @@ mod tests {
         // One that doesn't: written out in the text, as nothing it doesn't know would be dropped.
         let sent = for_machine(msg("port = 1"), false).unwrap();
         assert!(sent.files.is_empty());
-        assert!(sent.body.starts_with("the config\n\n(bob/api runs an older Reason Network"), "{}", sent.body);
+        assert!(sent.body.starts_with("the config\n\n(bob/api runs an older KLYPIX network"), "{}", sent.body);
         assert!(sent.body.ends_with("app.toml:\n```\nport = 1\n```"), "{}", sent.body);
         // Too much to write out: not sent, and the sender is told why.
         let e = for_machine(msg(&"x".repeat(MAX_BODY)), false).unwrap_err();
-        assert_eq!(e, "bob/api needs to update Reason Network to receive files");
+        assert_eq!(e, "bob/api needs to update KLYPIX network to receive files");
         // Nothing to carry: as it is.
         let mut plain = msg("");
         plain.files.clear();

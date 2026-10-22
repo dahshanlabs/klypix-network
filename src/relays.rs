@@ -4,7 +4,7 @@
 //!
 //! The list steers every such machine's relay traffic. That traffic is end-to-end encrypted, but a list of someone
 //! else's relays could cut machines off or show who talks to whom, so it is taken only signed with Reason's proof key
-//! (`typ` `reason-network-relays`, its own `iss`: neither a sign-in proof nor anything else signed with that key passes
+//! (`typ` `klypix-network-relays`, its own `iss`: neither a sign-in proof nor anything else signed with that key passes
 //! for one) and fetched only over HTTPS from [`URL`], following no redirect. Any fault rejects the whole list, and so
 //! does one issued before the list this machine has (no rolling back to an older one).
 //!
@@ -22,9 +22,9 @@ use std::{
 };
 
 pub const URL: &str = "https://reasonmachines.com/network/relays.json";
-const TYPE: &str = "reason-network-relays";
+const TYPE: &str = "klypix-network-relays";
 const ISSUER: &str = "https://reasonmachines.com/network/relays";
-const AUDIENCE: &str = "reason-network";
+const AUDIENCE: &str = "klypix-network";
 /// Refused beyond this, served or cached.
 const MAX_BYTES: usize = 64 << 10;
 const MAX_RELAYS: usize = 16;
@@ -74,7 +74,7 @@ fn parse(doc: &[u8], now: i64, fetched: bool) -> Result<List> {
     let claims = crate::proof::verify_signed(&served.signed, TYPE, "relay list", MAX_BYTES)?;
     let c: Claims = serde_json::from_slice(&claims).map_err(|e| anyhow!("the relay list is damaged: {e}"))?;
     if c.iss != ISSUER || c.aud != AUDIENCE {
-        bail!("the relay list isn't Reason Network's");
+        bail!("the relay list isn't KLYPIX network's");
     }
     if c.iat > now.saturating_add(MAX_SKEW_SECS) {
         bail!("the relay list is dated in the future (is this computer's clock right?)");
@@ -170,7 +170,7 @@ async fn refresh_in(home: &Path, url: &str) -> Result<()> {
     Ok(())
 }
 
-/// [`URL`]; in debug builds, `REASON_NETWORK_RELAYS_URL` instead, for tests (release builds only ever fetch `URL`).
+/// [`URL`]; in debug builds, `KLYPIX_NETWORK_RELAYS_URL` instead, for tests (release builds only ever fetch `URL`).
 fn url() -> String {
     #[cfg(debug_assertions)]
     if let Ok(u) = crate::paths::env_var("RELAYS_URL") {
@@ -248,7 +248,7 @@ mod tests {
     }
 
     fn home() -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("reason-network-relays-{}", ulid::Ulid::generate()));
+        let d = std::env::temp_dir().join(format!("klypix-network-relays-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(&d).unwrap();
         d
     }
@@ -289,9 +289,9 @@ mod tests {
         assert!(bad(with(&|c| c["iat"] = json!(now() + MAX_SKEW_SECS + 60))).contains("in the future"));
         assert!(bad(with(&|c| c.as_object_mut().unwrap().remove("iat").map(drop).unwrap())).contains("damaged"));
         assert!(
-            bad(with(&|c| c["iss"] = json!("https://reasonmachines.com/network"))).contains("isn't Reason Network's")
+            bad(with(&|c| c["iss"] = json!("https://reasonmachines.com/network"))).contains("isn't KLYPIX network's")
         );
-        assert!(bad(with(&|c| c["aud"] = json!("other"))).contains("isn't Reason Network's"));
+        assert!(bad(with(&|c| c["aud"] = json!("other"))).contains("isn't KLYPIX network's"));
         // Signed by someone else, or the signed part swapped for another.
         let forged = sign_with(forger(), json!({"alg": "RS256", "kid": KID, "typ": TYPE}), claims(&four()));
         assert!(bad(serde_json::to_vec(&json!({"signed": forged})).unwrap()).contains("doesn't verify"));
@@ -302,19 +302,19 @@ mod tests {
         let me = iroh::SecretKey::generate().public();
         let proof = crate::proof::tests::proof("u_1", "alex", &me);
         let as_list = serde_json::to_vec(&json!({"signed": proof})).unwrap();
-        assert!(parse(&as_list, now(), true).unwrap_err().to_string().contains("not a Reason Network relay list"));
+        assert!(parse(&as_list, now(), true).unwrap_err().to_string().contains("not a KLYPIX network relay list"));
         // A relay list's signed part isn't a proof, even with a proof's claims in it; and those claims (the proof's
         // issuer) make no relay list.
         let mut c = crate::proof::tests::claims("u_1", "alex", &me);
         c["relays"] = json!([{"url": region("sfo1")}]);
         let list = sign_with(signer(), json!({"alg": "RS256", "kid": KID, "typ": TYPE}), c);
         let err = crate::proof::verify(&list, &me).unwrap_err().to_string();
-        assert!(err.contains("not a Reason Network sign-in proof"), "{err}");
+        assert!(err.contains("not a KLYPIX network sign-in proof"), "{err}");
         let err = parse(&serde_json::to_vec(&json!({"signed": list})).unwrap(), now(), true).unwrap_err();
-        assert!(err.to_string().contains("isn't Reason Network's"), "{err}");
+        assert!(err.to_string().contains("isn't KLYPIX network's"), "{err}");
         // Nor does a list signed as a proof pass as one.
-        let typ_proof = doc_with(json!({"alg": "RS256", "kid": KID, "typ": "reason-network-proof"}), claims(&four()));
-        assert!(parse(&typ_proof, now(), true).unwrap_err().to_string().contains("not a Reason Network relay list"));
+        let typ_proof = doc_with(json!({"alg": "RS256", "kid": KID, "typ": "klypix-network-proof"}), claims(&four()));
+        assert!(parse(&typ_proof, now(), true).unwrap_err().to_string().contains("not a KLYPIX network relay list"));
     }
 
     #[test]

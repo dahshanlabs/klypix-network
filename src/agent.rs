@@ -9,7 +9,7 @@ use std::{
 
 pub const CLAUDE_CODE: &str = "claude-code";
 
-/// Best guess from the environment the agent gives its children. `REASON_NETWORK_AGENT` (set by `reason network setup` in the
+/// Best guess from the environment the agent gives its children. `KLYPIX_NETWORK_AGENT` (set by `reason network setup` in the
 /// MCP config) wins.
 pub fn detect_env() -> Option<&'static str> {
     let has = |k: &str| std::env::var_os(k).is_some();
@@ -79,7 +79,7 @@ pub fn multiplexed(agent: &str) -> bool {
     matches!(agent, "codex" | "opencode" | "cursor")
 }
 
-/// The session id an agent exports to its MCP servers, if any. `REASON_NETWORK_SESSION` is set by our own pi extension.
+/// The session id an agent exports to its MCP servers, if any. `KLYPIX_NETWORK_SESSION` is set by our own pi extension.
 pub fn env_session_id(agent: &str) -> Option<String> {
     if let Some(id) = crate::paths::env_var("SESSION").ok().filter(|s| !s.is_empty()) {
         return Some(id);
@@ -252,7 +252,7 @@ mod tests {
         assert_eq!(from_client_name("cursor-vscode"), Some("cursor"));
         assert_eq!(from_client_name("gemini-cli-mcp-client"), Some("gemini"));
         // grok names its client after the server, so this one also contains "reason".
-        assert_eq!(from_client_name("grok-shell-reason-network"), Some("grok"));
+        assert_eq!(from_client_name("grok-shell-klypix-network"), Some("grok"));
         assert_eq!(from_client_name("dsh-mcp-client"), Some("dsh"));
         assert_eq!(from_client_name("ashdsh"), None);
         assert_eq!(from_client_name("claude-ai"), Some("claude-desktop"));

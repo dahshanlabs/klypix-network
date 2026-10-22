@@ -10,8 +10,8 @@ use ring::signature::{RSA_PKCS1_2048_8192_SHA256, RsaPublicKeyComponents};
 use serde::{Deserialize, Serialize};
 
 const ISSUER: &str = "https://reasonmachines.com/network";
-const AUDIENCE: &str = "reason-network";
-const TYPE: &str = "reason-network-proof";
+const AUDIENCE: &str = "klypix-network";
+const TYPE: &str = "klypix-network-proof";
 /// Refused before decoding. A proof Reason signs with a 4096-bit key is at most about 1.6 KB: the signature is 512
 /// bytes (683 in base64url), the header with a 64-character key id about 130, and the claims (a 40-character name, an
 /// email of at most 254, the 64-digit endpoint) at most about 790. Even an 8192-bit key, the most `ring` takes, stays
@@ -23,7 +23,7 @@ const MAX_SKEW_SECS: i64 = 86_400;
 const MIN_BITS: usize = 2048;
 
 /// Reason's proof-signing public keys: key id, then the RSA modulus `n` and exponent `e` in base64url (as in a JWK). In
-/// debug builds `REASON_NETWORK_TRUST_KEYS` (a JWKS) adds keys, for tests.
+/// debug builds `KLYPIX_NETWORK_TRUST_KEYS` (a JWKS) adds keys, for tests.
 ///
 /// Never remove a key, even a retired one: who holds a name in a team rests on proofs' signatures (expired proofs
 /// included), so a build without a key that signed some would drop machines that every other build keeps. Add the
@@ -99,7 +99,7 @@ fn key(n: &str, e: &str) -> Option<Key> {
 }
 
 /// The keys a proof may be signed with: the compiled-in ones and, in debug builds, those in
-/// `REASON_NETWORK_TRUST_KEYS` (release builds trust only the compiled-in keys), and in tests a test key.
+/// `KLYPIX_NETWORK_TRUST_KEYS` (release builds trust only the compiled-in keys), and in tests a test key.
 fn trusted() -> &'static [(String, Key)] {
     static KEYS_: std::sync::OnceLock<Vec<(String, Key)>> = std::sync::OnceLock::new();
     KEYS_.get_or_init(|| {
@@ -107,7 +107,7 @@ fn trusted() -> &'static [(String, Key)] {
         let mut out: Vec<(String, Key)> =
             KEYS.iter().filter_map(|(kid, n, e)| Some((kid.to_string(), key(n, e)?))).collect();
         #[cfg(any(test, debug_assertions))]
-        if let Some(jwks) = std::env::var_os("REASON_NETWORK_TRUST_KEYS")
+        if let Some(jwks) = std::env::var_os("KLYPIX_NETWORK_TRUST_KEYS")
             && let Ok(jwks) = serde_json::from_str::<Jwks>(&jwks.to_string_lossy())
         {
             out.extend(
@@ -136,7 +136,7 @@ fn verify_with(jws: &str, endpoint: &EndpointId, now: i64, keys: &[(String, Key)
     let claims: Claims = serde_json::from_slice(&signed_claims(jws, TYPE, "sign-in proof", MAX_LEN, keys)?)
         .map_err(|_| anyhow!("this sign-in proof is damaged"))?;
     if claims.iss != ISSUER || claims.aud != AUDIENCE {
-        bail!("this sign-in proof isn't from Reason Network");
+        bail!("this sign-in proof isn't from KLYPIX network");
     }
     let p = claims.proof;
     if expiry && p.exp <= now {
@@ -176,10 +176,10 @@ fn signed_claims(jws: &str, typ: &str, what: &str, max_len: usize, keys: &[(Stri
     let header: Header = serde_json::from_slice(&decode(h)?).map_err(|_| bad())?;
     // RS256 only: never `none`, nor HS256 with the public key taken for a shared secret.
     if header.alg != "RS256" || header.typ != typ {
-        bail!("not a Reason Network {what}");
+        bail!("not a KLYPIX network {what}");
     }
     let Some((_, key)) = keys.iter().find(|(kid, _)| *kid == header.kid) else {
-        bail!("this {what} is signed with a key this version doesn't know (update Reason Network)");
+        bail!("this {what} is signed with a key this version doesn't know (update KLYPIX network)");
     };
     if key.verify(&RSA_PKCS1_2048_8192_SHA256, format!("{h}.{c}").as_bytes(), &decode(s)?).is_err() {
         bail!("this {what}'s signature doesn't verify");
@@ -278,10 +278,10 @@ pub(crate) mod tests {
             good.split('.').nth(2).unwrap()
         );
         assert!(err(&mixed).contains("signature doesn't verify"));
-        assert!(err(&with(&|c| c["aud"] = json!("reason"))).contains("isn't from Reason Network"));
-        assert!(err(&with(&|c| c["iss"] = json!("https://evil.example"))).contains("isn't from Reason Network"));
+        assert!(err(&with(&|c| c["aud"] = json!("reason"))).contains("isn't from KLYPIX network"));
+        assert!(err(&with(&|c| c["iss"] = json!("https://evil.example"))).contains("isn't from KLYPIX network"));
         // Reason's own issuer, but not the network's.
-        assert!(err(&with(&|c| c["iss"] = json!("https://reasonmachines.com"))).contains("isn't from Reason Network"));
+        assert!(err(&with(&|c| c["iss"] = json!("https://reasonmachines.com"))).contains("isn't from KLYPIX network"));
         assert!(err(&with(&|c| c["exp"] = json!(crate::util::now_ms() / 1000 - 1))).contains("expired"));
         assert!(err(&proof("user_1", "alex", &SecretKey::generate().public())).contains("for another machine"));
         for name in ["", "Alex", "alex smith", &"a".repeat(41)] {
@@ -291,7 +291,7 @@ pub(crate) mod tests {
             sign_with(signer(), json!({"alg": "RS256", "kid": "other", "typ": TYPE}), claims("user_1", "alex", &me));
         assert!(err(&unknown).contains("doesn't know"));
         let alg = sign_with(signer(), json!({"alg": "none", "kid": KID, "typ": TYPE}), claims("user_1", "alex", &me));
-        assert!(err(&alg).contains("not a Reason Network sign-in proof"));
+        assert!(err(&alg).contains("not a KLYPIX network sign-in proof"));
         for damaged in ["", "a.b", "a.b.c.d", &good[..good.len() - 4]] {
             assert!(verify(damaged, &me).is_err(), "{damaged:?}");
         }
@@ -358,12 +358,12 @@ pub(crate) mod tests {
             let input = format!("{}.{}", enc(&json!({"alg": "HS256", "kid": KID, "typ": TYPE})), enc(&c));
             let tag = ring::hmac::sign(&ring::hmac::Key::new(ring::hmac::HMAC_SHA256, &secret), input.as_bytes());
             let jws = format!("{input}.{}", BASE64URL_NOPAD.encode(tag.as_ref()));
-            assert!(verify(&jws, &me).unwrap_err().to_string().contains("not a Reason Network sign-in proof"));
+            assert!(verify(&jws, &me).unwrap_err().to_string().contains("not a KLYPIX network sign-in proof"));
         }
         // Unsigned.
         for sig in ["", "AAAA"] {
             let jws = format!("{}.{}.{sig}", enc(&json!({"alg": "none", "kid": KID, "typ": TYPE})), enc(&c));
-            assert!(verify(&jws, &me).unwrap_err().to_string().contains("not a Reason Network sign-in proof"));
+            assert!(verify(&jws, &me).unwrap_err().to_string().contains("not a KLYPIX network sign-in proof"));
         }
         // Another RSA scheme's name, over a good RS256 signature.
         let good = proof("user_1", "alex", &me);
@@ -405,7 +405,7 @@ pub(crate) mod tests {
     #[test]
     fn refuses_a_huge_proof_before_decoding_it() {
         let me = SecretKey::generate().public();
-        let header = BASE64URL_NOPAD.encode(br#"{"alg":"RS256","kid":"test-1","typ":"reason-network-proof"}"#);
+        let header = BASE64URL_NOPAD.encode(br#"{"alg":"RS256","kid":"test-1","typ":"klypix-network-proof"}"#);
         for big in [
             format!("{}.A.{}", "A".repeat(4 << 20), "A".repeat(342)),
             format!("{header}.{}.{}", "A".repeat(4 << 20), "A".repeat(342)),

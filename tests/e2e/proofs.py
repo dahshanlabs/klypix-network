@@ -1,5 +1,5 @@
 """Reason sign-in proofs and relay lists for the e2e tests: a stand-in for Reason's signing key, trusted through
-REASON_NETWORK_TRUST_KEYS (debug builds). RS256 (RSASSA-PKCS1-v1_5 with SHA-256) in plain Python, so the tests need
+KLYPIX_NETWORK_TRUST_KEYS (debug builds). RS256 (RSASSA-PKCS1-v1_5 with SHA-256) in plain Python, so the tests need
 nothing installed: keys are made fresh for each run."""
 import base64, hashlib, http.server, json, secrets, threading, time
 
@@ -65,9 +65,9 @@ TRUST = json.dumps({"keys": [{"kty": "RSA", "kid": KID, "alg": "RS256", "use": "
 def proof(sub, name, endpoint, key=None, **claims):
     """A proof that `endpoint` belongs to account `sub`, called `name`; signed with another `key` it's a forgery."""
     now = int(time.time())
-    body = {"iss": "https://reasonmachines.com/network", "aud": "reason-network", "sub": sub, "name": name,
+    body = {"iss": "https://reasonmachines.com/network", "aud": "klypix-network", "sub": sub, "name": name,
             "email": f"{name}@example.com", "endpoint": endpoint, "iat": now, "exp": now + 90 * 86400, **claims}
-    head = {"alg": "RS256", "kid": KID, "typ": "reason-network-proof"}
+    head = {"alg": "RS256", "kid": KID, "typ": "klypix-network-proof"}
     signing = f"{b64(json.dumps(head).encode())}.{b64(json.dumps(body).encode())}"
     return f"{signing}.{b64(sign(key or REASON, signing.encode()))}"
 
@@ -79,15 +79,15 @@ def relay_list(regions):
     """relays.json as Reason serves it: the list, and the same list signed."""
     relays = [{"url": RELAY[r], "region": r} for r in regions]
     now = int(time.time())
-    claims = {"iss": "https://reasonmachines.com/network/relays", "aud": "reason-network", "relays": relays,
+    claims = {"iss": "https://reasonmachines.com/network/relays", "aud": "klypix-network", "relays": relays,
               "iat": now, "exp": now + 30 * 86400}
-    head = {"alg": "RS256", "kid": KID, "typ": "reason-network-relays"}
+    head = {"alg": "RS256", "kid": KID, "typ": "klypix-network-relays"}
     signing = f"{b64(json.dumps(head).encode())}.{b64(json.dumps(claims).encode())}"
     return json.dumps({"relays": relays, "signed": f"{signing}.{b64(sign(REASON, signing.encode()))}"}).encode()
 
 
 def serve_relay_lists(lists):
-    """Serves `lists` ({name: regions}) at /<name>.json on a local port, for REASON_NETWORK_RELAYS_URL (debug builds),
+    """Serves `lists` ({name: regions}) at /<name>.json on a local port, for KLYPIX_NETWORK_RELAYS_URL (debug builds),
     so tests never fetch Reason's real list; the server's base URL."""
     docs = {f"/{name}.json": relay_list(regions) for name, regions in lists.items()}
 

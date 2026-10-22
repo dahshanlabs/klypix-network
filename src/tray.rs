@@ -60,7 +60,7 @@ mod mac {
 
         let tray = TrayIconBuilder::new()
             .with_tooltip("Reason")
-            .with_autosave_name("com.reasonmachines.network.tray")
+            .with_autosave_name("com.klypix.network.tray")
             .with_menu(Box::new(Menu::new()))
             .build()?;
         set_icon(&tray, false, None, mtm);
@@ -182,7 +182,7 @@ mod mac {
                 }
             }
             if *without > 0 {
-                let _ = sub.append(&info(&format!("+ {without} without Reason Network")));
+                let _ = sub.append(&info(&format!("+ {without} without KLYPIX network")));
             }
             let _ = sub.append(&sep());
             let _ = sub.append(&info("Click a session to copy its address"));

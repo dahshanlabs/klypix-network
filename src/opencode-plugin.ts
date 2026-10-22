@@ -119,7 +119,7 @@ const STATE: Record<string, string> = {
 
 // opencode 1.x calls `server`, 2.x calls `setup`.
 export default {
-  id: "reason-network",
+  id: "klypix-network",
   server: ReasonNetwork,
   setup: (ctx: any) => {
     // 1.x calls this too, with a context that has no events; it runs `server` instead.
