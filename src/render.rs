@@ -464,6 +464,7 @@ mod tests {
             tier: Tier::Push,
             unread: 0,
             is_me: false,
+            klypix: None,
         };
         Directory {
             team: Some(team.into()),

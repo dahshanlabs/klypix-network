@@ -104,7 +104,7 @@ impl Daemon {
                 .collect()
         };
         for (key, name) in renames {
-            let _ = self.set_status(&key, None, Some(name));
+            let _ = self.set_status(&key, None, Some(name), None);
         }
         // What each session is doing, from what its agent records anyway (title, task in progress).
         let sources: Vec<(String, doing::Source)> = {
@@ -151,6 +151,7 @@ impl Daemon {
                 }
             }
             row.doing = l.doing.clone().or_else(|| doings.get(&l.reg.key).cloned());
+            row.klypix = l.klypix.clone();
             row.tier = l.reg.tier;
             row.unread = g.store.unread_count(&row.address)?;
             row.is_me = me == Some(l.reg.key.as_str());
@@ -186,6 +187,7 @@ impl Daemon {
             tier: Tier::None,
             unread: 0,
             is_me: false,
+            klypix: None,
         }
     }
 

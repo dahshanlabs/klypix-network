@@ -94,6 +94,9 @@ pub enum Request {
         doing: Option<String>,
         #[serde(default)]
         name: Option<String>,
+        /// The session's KLYPIX project context; an empty `project` clears it.
+        #[serde(default)]
+        klypix: Option<KlypixInfo>,
     },
     Who {
         #[serde(default)]
@@ -452,6 +455,59 @@ pub struct SessionInfo {
     pub tier: Tier,
     pub unread: u32,
     pub is_me: bool,
+    /// What this session shares through its KLYPIX project brain: which project, what it is about to do and which
+    /// files it expects to touch. Set by KLYPIX's agent tool (`klypix-network status --klypix-json`); teammates'
+    /// KLYPIX tools read it to warn about overlapping work across computers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub klypix: Option<KlypixInfo>,
+}
+
+/// A session's KLYPIX project context (see `SessionInfo::klypix`). Advisory: never decides delivery or membership.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct KlypixInfo {
+    /// The project's key, the same on every computer (KLYPIX derives it from the repository): `a-z`, `0-9`, `-`, `:`.
+    pub project: String,
+    /// The one-line intent the session declared.
+    #[serde(default)]
+    pub intent: String,
+    /// Repository-relative files it expects to touch, `/`-separated.
+    #[serde(default)]
+    pub files: Vec<String>,
+}
+
+impl KlypixInfo {
+    /// The same info held to its limits, or `None` when it names no usable project. Applied when a session sets it and
+    /// again to every teammate's presence, so neither side can carry more than this.
+    pub fn tidy(mut self) -> Option<Self> {
+        self.project = self
+            .project
+            .to_ascii_lowercase()
+            .chars()
+            .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == ':')
+            .take(64)
+            .collect();
+        if self.project.is_empty() {
+            return None;
+        }
+        self.intent = crate::util::one_line(&self.intent, 160);
+        let mut files: Vec<String> = Vec::new();
+        for f in self.files.iter().take(200) {
+            let f = crate::util::one_line(&f.replace('\\', "/"), 200);
+            let f = f.trim_start_matches("./").to_string();
+            // Repository-relative only: nothing absolute, nothing that climbs out.
+            if f.is_empty() || f.starts_with('/') || f.contains(':') || f.split('/').any(|part| part == "..") {
+                continue;
+            }
+            if !files.contains(&f) {
+                files.push(f);
+            }
+            if files.len() == 50 {
+                break;
+            }
+        }
+        self.files = files;
+        Some(self)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -525,5 +581,36 @@ mod tests {
         // Anything else, and every success, has none.
         assert_eq!(reply("this sign-in proof expired; sign in again").get("code"), None);
         assert_eq!(serde_json::to_value(Reply::ok(7, serde_json::json!(1))).unwrap().get("code"), None);
+    }
+
+    #[test]
+    fn klypix_info_is_held_to_its_limits() {
+        let tidy = |project: &str, intent: &str, files: &[&str]| {
+            KlypixInfo { project: project.into(), intent: intent.into(), files: files.iter().map(|f| f.to_string()).collect() }
+                .tidy()
+        };
+        assert_eq!(tidy("  !!  ", "x", &[]), None, "no usable project");
+        let k = tidy("Git:ABC def/../", "line one\nline two", &[
+            "src/a.rs", "src\\b.rs", "./c.rs", "/etc/passwd", "C:/Users/me/x", "../up", "src/../x", "src/a.rs", "",
+        ])
+        .unwrap();
+        assert_eq!(k.project, "git:abcdef");
+        assert!(!k.intent.contains('\n'));
+        assert_eq!(k.files, vec!["src/a.rs", "src/b.rs", "c.rs"]);
+        let many: Vec<String> = (0..80).map(|i| format!("f{i}.rs")).collect();
+        let k = KlypixInfo { project: "p".repeat(100), intent: "i".repeat(500), files: many }.tidy().unwrap();
+        assert_eq!(k.project.len(), 64);
+        assert!(k.intent.chars().count() <= 160);
+        assert_eq!(k.files.len(), 50);
+    }
+
+    #[test]
+    fn klypix_info_is_optional_on_the_wire() {
+        // An engine without KLYPIX context neither sends nor needs the field.
+        let req: Request = serde_json::from_value(serde_json::json!({ "op": "set_status", "key": "k" })).unwrap();
+        match req {
+            Request::SetStatus { klypix, .. } => assert_eq!(klypix, None),
+            _ => panic!("wrong request"),
+        }
     }
 }

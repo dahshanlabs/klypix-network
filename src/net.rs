@@ -1085,6 +1085,7 @@ fn tidy_presence(mut p: Presence) -> Presence {
         s.repo = s.repo.as_deref().map(|r| line(r, 100));
         s.branch = s.branch.as_deref().map(|b| line(b, 100));
         s.doing = s.doing.as_deref().map(|d| line(d, 200)).filter(|d| !d.is_empty());
+        s.klypix = s.klypix.take().and_then(crate::proto::KlypixInfo::tidy);
     }
     p.sessions.retain(|s| !s.name.is_empty());
     p.known = p
@@ -1193,6 +1194,7 @@ mod tests {
             tier: crate::proto::Tier::Push,
             unread: 0,
             is_me: false,
+            klypix: None,
         };
         let p = tidy_presence(Presence { sessions: vec![s], known: vec![], features: vec![] });
         let d = crate::proto::Directory {
