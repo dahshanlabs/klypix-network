@@ -18,6 +18,7 @@ mod proto;
 mod relays;
 mod render;
 mod setup;
+mod signin;
 mod store;
 mod team;
 mod tray;
@@ -225,6 +226,12 @@ enum Cmd {
     },
     /// Attach or refresh this machine's KLYPIX sign-in proof, which verifies your name to teammates
     Proof { jws: String },
+    /// Sign in with your KLYPIX account in the browser, so teammates see your name as verified
+    Signin {
+        /// Don't open a browser: print the address, then paste the code the page shows
+        #[arg(long)]
+        no_browser: bool,
+    },
     /// Print this machine's endpoint id (what a sign-in proof names)
     Endpoint,
     /// Remove a person (all their machines) or one machine from the team
@@ -522,8 +529,14 @@ async fn cli(cmd: Cmd) -> Result<()> {
             let Some(team) = team else {
                 bail!("name the team: `{CLI} init <team>` (or run it in a terminal to be asked)")
             };
-            let req = Request::CreateTeam { name: team, person: default_person(person), relay, proof };
+            let req = Request::CreateTeam {
+                name: team,
+                person: default_person(person),
+                relay,
+                proof: proof.or_else(signin::kept),
+            };
             let t: TeamInfo = link.call(req).await?;
+            signin::forget();
             wait_exit(daemon_pid()).await;
             if json {
                 let agents = if no_setup { None } else { Some(setup::quietly().await?) };
@@ -540,8 +553,10 @@ async fn cli(cmd: Cmd) -> Result<()> {
         }
         Cmd::Join { invite, person, no_setup, proof, json } => {
             let Some(invite) = invite else { bail!("give the invite code: `{CLI} join <code>`") };
-            let req = Request::Join { ticket: invite, person: default_person(person), proof };
+            let req =
+                Request::Join { ticket: invite, person: default_person(person), proof: proof.or_else(signin::kept) };
             let t: TeamInfo = link.call(req).await?;
+            signin::forget();
             wait_exit(daemon_pid()).await;
             let agents = if no_setup || !json { None } else { Some(setup::quietly().await?) };
             if !json {
@@ -628,6 +643,20 @@ async fn cli(cmd: Cmd) -> Result<()> {
             print!("{}", shown(&render::team(&t)));
         }
         Cmd::Proof { jws } => println!("{}", link.call::<String>(Request::Proof { jws }).await?),
+        Cmd::Signin { no_browser } => {
+            paths::ensure_home()?;
+            let endpoint = daemon::load_key()?.public();
+            let (jws, proof) = signin::sign_in(endpoint, !no_browser).await?;
+            if link.call::<TeamInfo>(Request::Team).await.is_ok() {
+                println!("{}", shown(&link.call::<String>(Request::Proof { jws }).await?));
+            } else {
+                signin::keep(&jws)?;
+                println!(
+                    "Signed in as {}. Start or join a team with `{CLI}`: teammates will see that name as verified.",
+                    proof.name
+                );
+            }
+        }
         Cmd::Remove { who } => println!("{}", shown(&link.call::<String>(Request::Remove { who }).await?)),
         Cmd::Leave { force } => {
             println!("{}", shown(&link.call::<String>(Request::Leave { force }).await?));

@@ -11,9 +11,9 @@ ask_user); without them, you use the `klypix-network` command.
 
 ## Joining
 
-To join, or to set up KLYPIX network on a computer, follow https://reasonmachines.com/network: your user signs in
-there, and gets their network and its invite line, `Join the KLYPIX network: <link>`, which anyone pastes to their agent
-to join.
+To join, or to set up KLYPIX network on a computer, follow https://klypix.com/network. Starting a team gives an invite
+line, `Join the KLYPIX network: <link>`, which anyone pastes to their agent to join. `klypix-network signin` opens the
+browser so your user can verify their name with their KLYPIX account; only they can do that step.
 
 ## Commands
 
