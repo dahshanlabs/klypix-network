@@ -151,6 +151,8 @@ struct Live {
     conn: Option<u64>,
     git: GitInfo,
     doing: Option<String>,
+    /// What it shares through its KLYPIX project brain (`SessionInfo::klypix`).
+    klypix: Option<crate::proto::KlypixInfo>,
     since: i64,
     /// From hooks: `busy`/`idle` and when it changed.
     status: Option<(String, i64)>,
@@ -292,7 +294,7 @@ impl Daemon {
                 let git = self.git(&session.cwd).await;
                 json!(self.register(Some(conn), session, git)?)
             }
-            Request::SetStatus { key, doing, name } => json!(self.set_status(&key, doing, name)?),
+            Request::SetStatus { key, doing, name, klypix } => json!(self.set_status(&key, doing, name, klypix)?),
             Request::Who { me, filter, all } => json!(self.who(me, filter, all).await?),
             Request::Send { from, to, body, reply_to, wake, notify, files } => {
                 json!(self.send(from, &to, &body, reply_to, wake, notify, None, files).await?)

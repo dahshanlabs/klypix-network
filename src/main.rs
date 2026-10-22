@@ -160,6 +160,9 @@ enum Cmd {
         doing: Vec<String>,
         #[arg(long)]
         name: Option<String>,
+        /// The session's KLYPIX project context as JSON (`{"project","intent","files"}`); set by KLYPIX's agent tool
+        #[arg(long)]
+        klypix_json: Option<String>,
     },
     /// Start a team, with you as its first member
     Init {
@@ -477,12 +480,19 @@ async fn cli(cmd: Cmd) -> Result<()> {
             };
             print!("{}", shown(&render::send_result(&r)));
         }
-        Cmd::Status { doing, name } => {
+        Cmd::Status { doing, name, klypix_json } => {
             let Some(key) = current_session() else {
                 bail!("run this from inside an agent session's shell");
             };
             let doing = (!doing.is_empty()).then(|| doing.join(" "));
-            let r: Registered = link.call(Request::SetStatus { key, doing, name }).await?;
+            let klypix = match klypix_json {
+                Some(j) => Some(
+                    serde_json::from_str::<crate::proto::KlypixInfo>(&j)
+                        .map_err(|e| anyhow::anyhow!("--klypix-json isn't a KLYPIX project context: {e}"))?,
+                ),
+                None => None,
+            };
+            let r: Registered = link.call(Request::SetStatus { key, doing, name, klypix }).await?;
             println!("You are {}.", r.address);
         }
         Cmd::Init { team, person, no_setup: false, relay: None, proof: None, json: false } if wizard::interactive() => {

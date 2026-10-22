@@ -86,6 +86,7 @@ impl Daemon {
                     conn,
                     git,
                     doing: None,
+                    klypix: None,
                     since: now,
                     status: None,
                     last_hook: None,
@@ -118,7 +119,13 @@ impl Daemon {
             .collect()
     }
 
-    pub(super) fn set_status(&self, key: &str, doing: Option<String>, name: Option<String>) -> Result<Registered> {
+    pub(super) fn set_status(
+        &self,
+        key: &str,
+        doing: Option<String>,
+        name: Option<String>,
+        klypix: Option<crate::proto::KlypixInfo>,
+    ) -> Result<Registered> {
         let others = self.my_names_elsewhere();
         let mut g = self.inner.lock().unwrap();
         let g = &mut *g;
@@ -135,6 +142,14 @@ impl Daemon {
             let d = d.trim();
             live.doing = (!d.is_empty()).then(|| d.chars().take(200).collect());
         }
+        let mut announce = false;
+        if let Some(k) = klypix {
+            let k = k.tidy();
+            if k != live.klypix {
+                live.klypix = k;
+                announce = true;
+            }
+        }
         if let Some(n) = new_name
             && n != live.name
         {
@@ -148,7 +163,12 @@ impl Daemon {
         }
         g.store.upsert_session(&remembered(live, util::now_ms()))?;
         let address = self.addr(&live.name);
-        Ok(Registered { name: live.name.clone(), unread: g.store.unread_count(&address)?, address })
+        let name = live.name.clone();
+        let unread = g.store.unread_count(&address)?;
+        if announce {
+            self.presence_changed();
+        }
+        Ok(Registered { name, unread, address })
     }
 
     pub(super) fn unread(&self, key: &str) -> Result<Unread> {
