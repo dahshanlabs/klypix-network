@@ -59,7 +59,7 @@ mod mac {
         tokio::spawn(poll(tx, actions));
 
         let tray = TrayIconBuilder::new()
-            .with_tooltip("Reason")
+            .with_tooltip("KLYPIX")
             .with_autosave_name("com.klypix.network.tray")
             .with_menu(Box::new(Menu::new()))
             .build()?;
@@ -133,7 +133,7 @@ mod mac {
         if let Some(button) = tray.ns_status_item().and_then(|i| i.button(mtm)) {
             let image = NSImage::imageWithSystemSymbolName_accessibilityDescription(
                 &NSString::from_str(name),
-                Some(&NSString::from_str("Reason")),
+                Some(&NSString::from_str("KLYPIX")),
             );
             button.setImage(image.as_deref());
             button.setImagePosition(NSCellImagePosition::ImageLeft);
