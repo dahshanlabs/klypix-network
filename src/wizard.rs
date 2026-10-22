@@ -95,7 +95,7 @@ pub async fn onboard(
             let text: String = match invite.take() {
                 Some(t) => t,
                 None => input("Paste the team link")
-                    .placeholder("https://reasonmachines.com/network/join/#…")
+                    .placeholder("https://klypix.com/network/join/#…")
                     .validate(|s: &String| invite_ok(s))
                     .interact()?,
             };
@@ -186,7 +186,7 @@ fn and_list(items: &[&str]) -> String {
     }
 }
 
-/// Which agents are on Reason Network, the background service, and how teammates' messages are handled.
+/// Which agents are on KLYPIX network, the background service, and how teammates' messages are handled.
 pub async fn agents_and_preferences() -> Result<()> {
     let exe = setup::exe()?;
     let found = setup::detect(&exe);
@@ -197,7 +197,7 @@ pub async fn agents_and_preferences() -> Result<()> {
         Vec::new()
     } else {
         let initial: Vec<&str> = found.iter().filter(|f| f.wired).map(|f| f.id).collect();
-        let mut pick = multiselect("Which agents should be on Reason Network?  (space to toggle, enter to confirm)")
+        let mut pick = multiselect("Which agents should be on KLYPIX network?  (space to toggle, enter to confirm)")
             .required(false)
             .initial_values(initial);
         for f in &found {
@@ -205,7 +205,7 @@ pub async fn agents_and_preferences() -> Result<()> {
         }
         pick.interact()?
     };
-    let service = confirm("Keep Reason Network running in the background, so teammates can always reach you?")
+    let service = confirm("Keep KLYPIX network running in the background, so teammates can always reach you?")
         .initial_value(true)
         .interact()?;
     let mut cfg = Config::load_strict().map_err(|e| anyhow!("fix {} first: {e}", crate::paths::config().display()))?;
@@ -250,7 +250,7 @@ pub async fn show_link(new: bool) -> Result<String> {
     note(
         title,
         format!(
-            "Send it as the invite line, Join the Reason Network: <link>: whoever pastes it to their agent joins.\nIt works for everyone until `{CLI} link --new`."
+            "Send it as the invite line, Join the KLYPIX network: <link>: whoever pastes it to their agent joins.\nIt works for everyone until `{CLI} link --new`."
         ),
     )?;
     Ok(l.url)

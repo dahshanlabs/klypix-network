@@ -1,6 +1,6 @@
 """This build and an older one in one team: sign-in proofs and rn1 links leave older machines working.
 
-    cargo build && REASON_NETWORK_OLD_BIN=<an older reason-network, e.g. 0.10.8> \
+    cargo build && KLYPIX_NETWORK_OLD_BIN=<an older klypix-network, e.g. 0.10.8> \
         env -u CLAUDE_CODE_MESSAGING_SOCKET python3 tests/e2e/mixed_versions.py
 
 Needs internet (iroh relays/discovery).
@@ -10,9 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from proofs import TRUST, proof, serve_relay_lists
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-NEW = os.path.join(ROOT, "target", "debug", "reason-network")
-OLD = os.environ["REASON_NETWORK_OLD_BIN"]
-D = tempfile.mkdtemp(prefix="reason-network-mixed-")
+NEW = os.path.join(ROOT, "target", "debug", "klypix-network")
+OLD = os.environ["KLYPIX_NETWORK_OLD_BIN"]
+D = tempfile.mkdtemp(prefix="klypix-network-mixed-")
 FAKE_BIN = os.path.join(D, "bin")
 UNEXPECTED = os.path.join(D, "unexpected.log")
 # Reason's relay list, served here for this build (debug): never the real one. The older build has no list.
@@ -30,9 +30,9 @@ def check(name, ok, detail=""):
 def env(who):
     e = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
     e.update(HOME=os.path.join(D, "home"), PATH=FAKE_BIN + os.pathsep + os.environ["PATH"], CLAUDE_CONFIG_DIR=os.path.join(D, "claude"),
-             REASON_NETWORK_HOME=os.path.join(D, who), REASON_NETWORK_MACHINE=WHO[who][1], REASON_NETWORK_NO_MDNS="1",
-             REASON_NETWORK_NO_SERVICE="1", REASON_NETWORK_NO_UPDATE="1", REASON_NETWORK_NO_TRAY="1",
-             REASON_NETWORK_TRUST_KEYS=TRUST, REASON_NETWORK_RELAYS_URL=RELAYS_URL)
+             KLYPIX_NETWORK_HOME=os.path.join(D, who), KLYPIX_NETWORK_MACHINE=WHO[who][1], KLYPIX_NETWORK_NO_MDNS="1",
+             KLYPIX_NETWORK_NO_SERVICE="1", KLYPIX_NETWORK_NO_UPDATE="1", KLYPIX_NETWORK_NO_TRAY="1",
+             KLYPIX_NETWORK_TRUST_KEYS=TRUST, KLYPIX_NETWORK_RELAYS_URL=RELAYS_URL)
     return e
 
 

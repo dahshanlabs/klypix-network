@@ -38,10 +38,10 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     id = ctx.sessionManager.getSessionId()
     cwd = ctx.cwd
-    pi.registerMcpServer("reason-network", {
+    pi.registerMcpServer("klypix-network", {
       command: ENGINE,
       args: ["mcp"],
-      env: { REASON_NETWORK_AGENT: "pi", REASON_NETWORK_SESSION: id },
+      env: { KLYPIX_NETWORK_AGENT: "pi", KLYPIX_NETWORK_SESSION: id },
       exposure: "deferred",
       description: "Message teammates' coding agents and see what each of their sessions is working on",
     })

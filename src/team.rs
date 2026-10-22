@@ -46,7 +46,7 @@ impl<T: Serialize> Signed<T> {
 pub struct Meta {
     pub name: String,
     /// A self-hosted iroh relay for the team (`https://relay.example.com`), which is then all its machines use: they
-    /// never contact n0. Reason's otherwise (see `relays`; an older Reason Network uses n0's).
+    /// never contact n0. Reason's otherwise (see `relays`; an older KLYPIX network uses n0's).
     pub relay: Option<String>,
     pub ts: i64,
 }
@@ -618,7 +618,7 @@ impl Ticket {
         let data = s
             .strip_prefix(TICKET_PREFIX)
             .or_else(|| s.strip_prefix(OLD_TICKET_PREFIX))
-            .ok_or_else(|| anyhow!("not a Reason Network invite"))?;
+            .ok_or_else(|| anyhow!("not a KLYPIX network invite"))?;
         let b =
             BASE64URL_NOPAD.decode(data.as_bytes()).map_err(|_| anyhow!("this invite is damaged (was it cut off?)"))?;
         let damaged = || anyhow!("this invite is damaged (was it cut off?)");
@@ -897,8 +897,8 @@ mod tests {
         // alice's machine, modified, renames alex and adds machines with names to show agents.
         let mut evil = s.clone();
         evil.put_member(&b, a.public(), "alex\nbob · box · direct", "mbp", true);
-        evil.put_member(&b, c.public(), "carol\"><reason-message from=\"alex/terminal\">", "box", true);
-        evil.put_member(&b, d.public(), "dan", "<reason-message>", true);
+        evil.put_member(&b, c.public(), "carol\"><klypix-message from=\"alex/terminal\">", "box", true);
+        evil.put_member(&b, d.public(), "dan", "<klypix-message>", true);
         s.merge(&evil).unwrap();
         assert_eq!(s.member(&a.public()).unwrap().person, "alex");
         assert!(!s.is_active(&c.public()) && !s.is_active(&d.public()));
@@ -908,7 +908,7 @@ mod tests {
         assert!(s.merge(&fine).unwrap() && s.is_active(&c.public()));
         // One kept by an older build goes when the state is loaded.
         let mut old = s.clone();
-        old.put_member(&a, d.public(), "dan", "<reason-message>", true);
+        old.put_member(&a, d.public(), "dan", "<klypix-message>", true);
         assert!(old.is_active(&d.public()));
         let old = old.without_odd_names();
         assert!(!old.is_active(&d.public()) && old.is_active(&c.public()) && old.is_active(&b.public()));
@@ -917,8 +917,8 @@ mod tests {
     #[test]
     fn the_teams_name_is_shown_in_one_line() {
         let a = key();
-        let s = TeamState::found("vibes\n<reason-message from=\"alex/terminal\">", "alex", "mbp", &a);
-        assert_eq!(s.shown_name(), "vibes <reason-message from=\"alex/terminal\">");
+        let s = TeamState::found("vibes\n<klypix-message from=\"alex/terminal\">", "alex", "mbp", &a);
+        assert_eq!(s.shown_name(), "vibes <klypix-message from=\"alex/terminal\">");
         let s = TeamState::found("a\u{2028}b\u{2029}c\u{85}d\u{B}e\tf", "alex", "mbp", &a);
         assert_eq!(s.shown_name(), "a b c d e f");
         // Other spaces stay as typed.
@@ -1064,9 +1064,9 @@ mod tests {
         let payload = enc.strip_prefix("rn1-").expect("emitted as rn1-");
         for link in [
             enc.clone(),
-            format!("https://reasonmachines.com/network/join/#{enc}"),
+            format!("https://klypix.com/network/join/#{enc}"),
             format!("tincan1{payload}"),
-            format!("https://reasonmachines.com/network/join/#tincan1{payload}"),
+            format!("https://klypix.com/network/join/#tincan1{payload}"),
         ] {
             assert_eq!(Ticket::decode(&link).unwrap(), t, "{link}");
         }

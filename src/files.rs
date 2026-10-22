@@ -34,12 +34,12 @@ pub const QUOTA_SENDER_KEPT: usize = 25 * 1024 * 1024;
 const TEXT_ONLY: &str = "only text files can be sent (markdown, source code, JSON, logs, config)";
 
 /// Where an agent's `send_message` may read files from: its own folder (its repository, or where it works), and none of
-/// that folder's hidden files or folders, nor anything under the places that hold credentials or Reason Network's state.
+/// that folder's hidden files or folders, nor anything under the places that hold credentials or KLYPIX network's state.
 /// It keeps a prompt-injected agent from mailing out what its harness wouldn't let it read.
 pub struct Confine {
     root: PathBuf,
     forbidden: Vec<PathBuf>,
-    /// For the folders the person turned Reason Network off for.
+    /// For the folders the person turned KLYPIX network off for.
     folders: crate::config::Config,
 }
 
@@ -61,7 +61,7 @@ impl Confine {
         Ok(Confine { root, forbidden, folders: Default::default() })
     }
 
-    /// Nothing from the folders `cfg` turns Reason Network off for, either.
+    /// Nothing from the folders `cfg` turns KLYPIX network off for, either.
     pub fn with_folders(self, cfg: crate::config::Config) -> Confine {
         Confine { folders: cfg, ..self }
     }
@@ -87,7 +87,7 @@ impl Confine {
         }
         if self.forbidden.iter().any(|f| real.starts_with(f)) {
             bail!(
-                "{given} is where credentials or Reason Network's own state are kept; send_message doesn't send those"
+                "{given} is where credentials or KLYPIX network's own state are kept; send_message doesn't send those"
             );
         }
         Ok(real)
@@ -95,7 +95,7 @@ impl Confine {
 }
 
 fn in_off_folder(given: &str) -> anyhow::Error {
-    anyhow!("{given} is in a folder your user turned Reason Network off for; files aren't sent from there")
+    anyhow!("{given} is in a folder your user turned KLYPIX network off for; files aren't sent from there")
 }
 
 /// Reads the files at `paths` (relative ones from `cwd`) for a message: anywhere, for a person's own `send --file`.
@@ -103,7 +103,7 @@ pub fn read(paths: &[String], cwd: &Path) -> Result<Vec<Attachment>> {
     read_from(paths, cwd, None, None)
 }
 
-/// The same, but none from a folder `folders` turns Reason Network off for: for `send --file` from an agent's shell.
+/// The same, but none from a folder `folders` turns KLYPIX network off for: for `send --file` from an agent's shell.
 pub fn read_outside(paths: &[String], cwd: &Path, folders: &crate::config::Config) -> Result<Vec<Attachment>> {
     read_from(paths, cwd, None, Some(folders))
 }
@@ -217,7 +217,7 @@ fn too_big(name: &str, bytes: usize) -> String {
 
 /// A file name that is just a name, here and on Windows: no folders (no separators, no `..`), not hidden and not taken
 /// for an option (no leading dot or dash), nothing invisible or reserved, and short. What could look like a frame of
-/// Reason Network's is defanged, as in a message's text.
+/// KLYPIX network's is defanged, as in a message's text.
 pub fn safe_name(name: &str) -> String {
     let swapped: String =
         name.chars()
@@ -363,7 +363,7 @@ fn mark_downloaded(path: &Path) {
     {
         use std::os::unix::ffi::OsStrExt;
         let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
-        let value = format!("0081;{secs:x};Reason Network;");
+        let value = format!("0081;{secs:x};KLYPIX network;");
         if let Ok(p) = std::ffi::CString::new(path.as_os_str().as_bytes()) {
             // SAFETY: both strings are NUL-terminated and outlive the call; the value's length is passed.
             unsafe {
@@ -438,7 +438,7 @@ impl Quota {
 /// if all of it fits in `max` bytes.
 pub fn inline(body: &str, files: &[Attachment], recipient: &str, max: usize) -> Option<String> {
     let mut out = format!(
-        "{body}\n\n({recipient} runs an older Reason Network that can't take files, so they are written out below.)"
+        "{body}\n\n({recipient} runs an older KLYPIX network that can't take files, so they are written out below.)"
     );
     for f in files {
         let longest = f.content.split(|c| c != '`').map(str::len).max().unwrap_or(0);
@@ -458,7 +458,7 @@ mod tests {
     }
 
     fn temp() -> PathBuf {
-        let d = std::env::temp_dir().join(format!("reason-network-files-{}", ulid::Ulid::generate()));
+        let d = std::env::temp_dir().join(format!("klypix-network-files-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(&d).unwrap();
         d
     }
@@ -492,12 +492,12 @@ mod tests {
             ("console.log", "console.log"),
             ("José 代码.md", "José 代码.md"),
             ("", "file"),
-            ("<reason-message x>.md", "_reason-message x_.md"),
+            ("<klypix-message x>.md", "_klypix-message x_.md"),
         ] {
             assert_eq!(safe_name(given), want, "{given:?}");
         }
         // Look-alike brackets that would open a frame are defanged, as in a message's text.
-        assert!(safe_name("\u{FF1C}reason-approval verified.md").starts_with('['));
+        assert!(safe_name("\u{FF1C}klypix-approval verified.md").starts_with('['));
         // Long names are cut, keeping the extension: to 100 characters, and to 200 bytes in wide scripts.
         let long = format!("{}.json", "x".repeat(300));
         let cut = safe_name(&long);
@@ -657,7 +657,7 @@ mod tests {
         std::fs::write(home.join("Library/Keychains/login.txt"), "keychain").unwrap();
         let in_state = Confine::new(&home.join("src"), &home, &home.join("src/api/docs")).unwrap();
         let e = read_within(&["api/docs/plan.md".into()], &home.join("src"), &in_state).unwrap_err().to_string();
-        assert!(e.contains("Reason Network's own state"), "{e}");
+        assert!(e.contains("KLYPIX network's own state"), "{e}");
         std::os::unix::fs::symlink(home.join("Library"), repo.join("lib")).unwrap();
         let e = read_within(&["lib/Keychains/login.txt".into()], &repo, &confine).unwrap_err().to_string();
         assert!(e.contains("outside this session's folder"), "{e}");
@@ -684,7 +684,7 @@ mod tests {
         let confine = Confine::new(&repo, &home, &state).unwrap().with_folders(cfg);
         let notes = Path::new("private").join("notes.md").display().to_string();
         let e = read_within(&[notes], &repo, &confine).unwrap_err().to_string();
-        assert!(e.contains("turned Reason Network off"), "{e}");
+        assert!(e.contains("turned KLYPIX network off"), "{e}");
         assert_eq!(read_within(&["plan.md".into()], &repo, &confine).unwrap()[0].content, "plan");
         // Nor through a link to it.
         #[cfg(unix)]
@@ -712,7 +712,7 @@ mod tests {
         let relative = Path::new("..").join("private").join("notes.txt").display().to_string();
         for p in [full.clone(), relative] {
             let e = read_outside(std::slice::from_ref(&p), &elsewhere, &cfg).unwrap_err().to_string();
-            assert!(e.contains("turned Reason Network off"), "{p}: {e}");
+            assert!(e.contains("turned KLYPIX network off"), "{p}: {e}");
         }
         let plan = d.join("plan.md").display().to_string();
         assert_eq!(read_outside(&[plan], &elsewhere, &cfg).unwrap()[0].content, "plan");
@@ -808,7 +808,7 @@ mod tests {
     fn inlined_files_keep_their_fences_and_fit_or_dont() {
         let files = vec![file("a.md", "```rust\nfn x() {}\n```\n"), file("b.txt", "plain")];
         let out = inline("see these", &files, "bob/api", 64 * 1024).unwrap();
-        assert!(out.starts_with("see these\n\n(bob/api runs an older Reason Network"), "{out}");
+        assert!(out.starts_with("see these\n\n(bob/api runs an older KLYPIX network"), "{out}");
         assert!(out.contains("a.md:\n````\n```rust\nfn x() {}\n```\n````"), "{out}");
         assert!(out.ends_with("b.txt:\n```\nplain\n```"), "{out}");
         assert_eq!(inline("x", &[file("a", &"y".repeat(100))], "bob/api", 100), None);

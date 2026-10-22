@@ -696,6 +696,6 @@ mod tests {
         assert!(sign_in_needs_a_link(&code, Some("jws")).unwrap_err().to_string().contains("not a four-word code"));
         assert!(sign_in_needs_a_link(&code.replace('-', " "), Some("jws")).is_err());
         assert!(sign_in_needs_a_link(&code, None).is_ok(), "codes still work without signing in");
-        assert!(sign_in_needs_a_link("https://reasonmachines.com/network/join/#rn1-AAAA", Some("jws")).is_ok());
+        assert!(sign_in_needs_a_link("https://klypix.com/network/join/#rn1-AAAA", Some("jws")).is_ok());
     }
 }

@@ -58,7 +58,7 @@ fn command(title: &str, body: &str) -> Option<Command> {
 fn command(title: &str, body: &str) -> Option<Command> {
     let mut cmd = notify_send()?;
     // `--` keeps a body starting with `-` from being taken for an option.
-    cmd.args(["--app-name=Reason Network".into(), "--".into(), markup(title), markup(body)]);
+    cmd.args(["--app-name=KLYPIX network".into(), "--".into(), markup(title), markup(body)]);
     Some(cmd)
 }
 
@@ -173,7 +173,7 @@ mod tests {
     /// A private session bus whose only service directory is `services`, so what the host has installed doesn't count.
     fn bus(services: &[&str]) -> Option<(std::process::Child, String, std::path::PathBuf)> {
         let daemon = agent::find_bin("dbus-daemon").filter(|_| agent::find_bin("busctl").is_some())?;
-        let dir = std::env::temp_dir().join(format!("reason-network-bus-{}", ulid::Ulid::generate()));
+        let dir = std::env::temp_dir().join(format!("klypix-network-bus-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(dir.join("services")).unwrap();
         for name in services {
             let service = format!("[D-BUS Service]\nName={name}\nExec=/nonexistent\n");

@@ -38,7 +38,7 @@ use tokio::{
 const GIT_TTL: Duration = Duration::from_secs(30);
 const MAX_WAIT: u64 = 600;
 
-/// Runs the daemon. Only one runs per state folder (`REASON_NETWORK_HOME`): a second one exits, or with `service` waits its turn.
+/// Runs the daemon. Only one runs per state folder (`KLYPIX_NETWORK_HOME`): a second one exits, or with `service` waits its turn.
 pub async fn run(service: bool) -> Result<()> {
     // Windows runs what starts at logon in a console window of its own: carry on in a hidden process instead.
     #[cfg(windows)]
@@ -380,7 +380,7 @@ impl Daemon {
 /// A daemon on an in-memory store, outside any team, with `cfg`.
 #[cfg(test)]
 fn test_daemon(cfg: Config) -> Daemon {
-    let inbox = std::env::temp_dir().join(format!("reason-network-inbox-{}", ulid::Ulid::generate()));
+    let inbox = std::env::temp_dir().join(format!("klypix-network-inbox-{}", ulid::Ulid::generate()));
     let store = Store::open(std::path::Path::new(":memory:"), inbox).unwrap();
     Daemon::with(cfg, store, SecretKey::generate()).unwrap()
 }

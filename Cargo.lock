@@ -1810,6 +1810,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "klypix-network"
+version = "0.12.5"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "clap",
+ "cliclack",
+ "console",
+ "data-encoding",
+ "deunicode",
+ "futures-lite",
+ "getrandom 0.4.3",
+ "iroh",
+ "iroh-mdns-address-lookup",
+ "libc",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "ring",
+ "rmcp",
+ "rusqlite",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tokio",
+ "toml",
+ "toml_edit",
+ "tray-icon",
+ "ulid",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2752,39 +2785,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "caa0f4137e1c0a72f4c651489402276c8e8e1cf081f3b0ba156d2cbeef09e86a"
 dependencies = [
  "rand_core",
-]
-
-[[package]]
-name = "reason-network"
-version = "0.12.5"
-dependencies = [
- "anyhow",
- "blake3",
- "clap",
- "cliclack",
- "console",
- "data-encoding",
- "deunicode",
- "futures-lite",
- "getrandom 0.4.3",
- "iroh",
- "iroh-mdns-address-lookup",
- "libc",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "ring",
- "rmcp",
- "rusqlite",
- "schemars",
- "serde",
- "serde_json",
- "tokio",
- "toml",
- "toml_edit",
- "tray-icon",
- "ulid",
- "windows-sys 0.61.2",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 //! Reason sessions. Reason's agent runs in its cloud, so there is no hook or MCP server here: when `reason` is on
 //! (`reason network setup`), the daemon lists your live Reason sessions (`reason session list --json`) every few seconds,
-//! and delivers to them with `reason session send`. They reply through the Reason Network CLI, which runs here.
+//! and delivers to them with `reason session send`. They reply through the KLYPIX network CLI, which runs here.
 //!
 //! Where the Reason CLI manages this engine, the daemon also keeps the CLI's `reason network __relay` running: it
 //! carries the workspace's cloud agents' calls (Reason's hosted tools) onto the network, for as long as the daemon runs.
@@ -208,7 +208,7 @@ mod tests {
 
     impl Stub {
         fn new(narrow_err: &str, plain_err: Option<&str>) -> Stub {
-            let dir = std::env::temp_dir().join(format!("reason-network-reason-{}", ulid::Ulid::generate()));
+            let dir = std::env::temp_dir().join(format!("klypix-network-reason-{}", ulid::Ulid::generate()));
             std::fs::create_dir_all(&dir).unwrap();
             let (bin, calls) = (dir.join("reason"), dir.join("calls"));
             let plain = match plain_err {

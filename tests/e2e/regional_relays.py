@@ -1,5 +1,5 @@
 """Reason's relay list: two machines homed on different regional relays still join and talk, and a team's own relay
-still wins over the list. Each machine gets its own signed list from a local server (REASON_NETWORK_RELAYS_URL, which
+still wins over the list. Each machine gets its own signed list from a local server (KLYPIX_NETWORK_RELAYS_URL, which
 debug builds honor), so alex knows only sfo1 and bea only fra1.
 
     cargo build && env -u CLAUDE_CODE_MESSAGING_SOCKET python3 tests/e2e/regional_relays.py
@@ -11,8 +11,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from proofs import RELAY, TRUST, proof, serve_relay_lists
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BIN = os.environ.get("REASON_NETWORK_TEST_BIN", os.path.join(ROOT, "target", "debug", "reason-network"))
-D = tempfile.mkdtemp(prefix="reason-network-relays-")
+BIN = os.environ.get("KLYPIX_NETWORK_TEST_BIN", os.path.join(ROOT, "target", "debug", "klypix-network"))
+D = tempfile.mkdtemp(prefix="klypix-network-relays-")
 FAKE_BIN = os.path.join(D, "bin")
 UNEXPECTED = os.path.join(D, "unexpected.log")
 # Who knows which relays; carl's team runs its own (sin1), which must win over his list (fra1).
@@ -29,9 +29,9 @@ def check(name, ok, detail=""):
 def env(who):
     e = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
     e.update(HOME=os.path.join(D, "home"), PATH=FAKE_BIN + os.pathsep + os.environ["PATH"], CLAUDE_CONFIG_DIR=os.path.join(D, "claude"),
-             REASON_NETWORK_HOME=os.path.join(D, who), REASON_NETWORK_MACHINE=WHO[who][0], REASON_NETWORK_NO_MDNS="1",
-             REASON_NETWORK_NO_SERVICE="1", REASON_NETWORK_NO_UPDATE="1", REASON_NETWORK_NO_TRAY="1",
-             REASON_NETWORK_TRUST_KEYS=TRUST, REASON_NETWORK_RELAYS_URL=f"{LISTS}/{who}.json")
+             KLYPIX_NETWORK_HOME=os.path.join(D, who), KLYPIX_NETWORK_MACHINE=WHO[who][0], KLYPIX_NETWORK_NO_MDNS="1",
+             KLYPIX_NETWORK_NO_SERVICE="1", KLYPIX_NETWORK_NO_UPDATE="1", KLYPIX_NETWORK_NO_TRAY="1",
+             KLYPIX_NETWORK_TRUST_KEYS=TRUST, KLYPIX_NETWORK_RELAYS_URL=f"{LISTS}/{who}.json")
     return e
 
 

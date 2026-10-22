@@ -1,4 +1,4 @@
-"""Two 'machines' (two REASON_NETWORK_HOMEs) on one box, talking over iroh, with simulated agent sessions.
+"""Two 'machines' (two KLYPIX_NETWORK_HOMEs) on one box, talking over iroh, with simulated agent sessions.
 
     cargo build && env -u CLAUDE_CODE_MESSAGING_SOCKET python3 tests/e2e/two_machines.py
 
@@ -10,8 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from proofs import TRUST, keygen, proof, serve_relay_lists
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BIN = os.path.join(ROOT, "target", "debug", "reason-network")
-D = tempfile.mkdtemp(prefix="reason-network-e2e-")
+BIN = os.path.join(ROOT, "target", "debug", "klypix-network")
+D = tempfile.mkdtemp(prefix="klypix-network-e2e-")
 H = {"alex": os.path.join(D, "alex"), "alice": os.path.join(D, "alice")}
 MACHINE = {"alex": "laptop", "alice": "desktop"}
 FAKE_CODEX = os.path.join(D, "fake-codex.sh")
@@ -33,16 +33,16 @@ def check(name, ok, detail=""):
 
 
 def env(who, strip_claude=True):
-    e = dict(os.environ, REASON_NETWORK_HOME=H[who], REASON_NETWORK_MACHINE=MACHINE[who], REASON_NETWORK_NO_MDNS="1", REASON_NETWORK_NO_SERVICE="1", REASON_NETWORK_CODEX_BIN=FAKE_CODEX)
-    e.update({"HOME": os.path.join(D, "home"), "PATH": FAKE_BIN + os.pathsep + os.environ["PATH"], "REASON_NETWORK_NO_UPDATE": "1",
-              "REASON_NETWORK_NO_TRAY": "1", "REASON_NETWORK_TRUST_KEYS": TRUST, "REASON_NETWORK_RELAYS_URL": RELAYS_URL})
-    e.update({"REASON_NETWORK_OSASCRIPT_BIN": FAKE_NOTIFY, "REASON_NETWORK_NOTIFY-SEND_BIN": FAKE_NOTIFY, "DBUS_SESSION_BUS_ADDRESS": "test",
+    e = dict(os.environ, KLYPIX_NETWORK_HOME=H[who], KLYPIX_NETWORK_MACHINE=MACHINE[who], KLYPIX_NETWORK_NO_MDNS="1", KLYPIX_NETWORK_NO_SERVICE="1", KLYPIX_NETWORK_CODEX_BIN=FAKE_CODEX)
+    e.update({"HOME": os.path.join(D, "home"), "PATH": FAKE_BIN + os.pathsep + os.environ["PATH"], "KLYPIX_NETWORK_NO_UPDATE": "1",
+              "KLYPIX_NETWORK_NO_TRAY": "1", "KLYPIX_NETWORK_TRUST_KEYS": TRUST, "KLYPIX_NETWORK_RELAYS_URL": RELAYS_URL})
+    e.update({"KLYPIX_NETWORK_OSASCRIPT_BIN": FAKE_NOTIFY, "KLYPIX_NETWORK_NOTIFY-SEND_BIN": FAKE_NOTIFY, "DBUS_SESSION_BUS_ADDRESS": "test",
               "NOTIFY_LOG": os.path.join(D, f"notify-{who}.log")})
     if strip_claude:
         for k in list(e):
             if k.startswith("CLAUDE"):
                 del e[k]
-    # Never this machine's real Claude sessions: Reason Network could deliver into them.
+    # Never this machine's real Claude sessions: KLYPIX network could deliver into them.
     e["CLAUDE_CONFIG_DIR"] = os.path.join(D, "claude-config")
     return e
 
@@ -144,17 +144,17 @@ check("endpoint prints this machine's id, before any team", all(re.fullmatch(r"[
 check("…the same one each time", cli("alex", "endpoint") == ep["alex"], ep)
 out = cli("alex", "init", "vibes", "--as", "whoever", "--proof", proof("u_alex", "alex", ep["alex"]), "--no-setup")
 check("init with a proof: the name is the proof's", "Created team vibes. You are alex on laptop." in out, out)
-check("…and prints the invite line", re.search(r"Invite people with this line:\nJoin the Reason Network: https://reasonmachines.com/network/join/#rn1-\S+", out) is not None, out)
+check("…and prints the invite line", re.search(r"Invite people with this line:\nJoin the KLYPIX network: https://klypix.com/network/join/#rn1-\S+", out) is not None, out)
 out = cli("alex", "invite")
 link = re.search(r"(https://\S+/join/#rn1-\S+)", out)
 check("invite prints the team link, as an rn1 link", bool(link), out)
-check("…in the invite line", f"Join the Reason Network: {link.group(1) if link else '?'}" in out, out)
+check("…in the invite line", f"Join the KLYPIX network: {link.group(1) if link else '?'}" in out, out)
 out, _ = run(env("alice"), "join", link.group(1), "--as", "alice", "--proof", proof("u_alice", "alice", ep["alice"]), "--no-setup", "--json")
 j = as_json(out)
 check("join with a proof and --json gives the team", j.get("team_name") == "vibes" and j.get("person") == "alice" and j.get("machine") == "desktop"
       and j.get("endpoint") == ep["alice"] and re.fullmatch(r"[0-9a-f]{32}", j.get("team_id", "")) is not None, out)
-check("…with the link and invite line", j.get("link", "").startswith("https://reasonmachines.com/network/join/#rn1-")
-      and j.get("invite_line") == f"Join the Reason Network: {j.get('link')}", out)
+check("…with the link and invite line", j.get("link", "").startswith("https://klypix.com/network/join/#rn1-")
+      and j.get("invite_line") == f"Join the KLYPIX network: {j.get('link')}", out)
 members = {m["person"]: m for m in j.get("members", [])}
 check("…and both people verified", members.get("alex", {}).get("verified") is True and members.get("alice", {}).get("verified") is True, out)
 time.sleep(3)
@@ -169,9 +169,9 @@ j = as_json(cli("alex", "team", "--json"))
 check("team --json marks people verified, and each machine's proof", [(m["verified"], m["has_proof"]) for m in j.get("members", [])] == [(True, True)] * 2
       and j.get("link", "").startswith("https://") and j.get("team_name") == "vibes" and len(j.get("team_id", "")) == 32, j)
 j = as_json(cli("alex", "link", "--json"))
-check("link --json gives the invite line", j.get("invite_line", "").startswith("Join the Reason Network: https://reasonmachines.com/network/join/#rn1-"), j)
+check("link --json gives the invite line", j.get("invite_line", "").startswith("Join the KLYPIX network: https://klypix.com/network/join/#rn1-"), j)
 out = cli("alex", "link")
-check("link prints the invite line", "Join the Reason Network: https://reasonmachines.com/network/join/#rn1-" in out, out)
+check("link prints the invite line", "Join the KLYPIX network: https://klypix.com/network/join/#rn1-" in out, out)
 j = as_json(cli("alex", "who", "--json"))
 check("who --json marks machines verified", all(m.get("verified") for m in j.get("machines", [])) and len(j.get("machines", [])) == 2, j)
 out = cli("alice", "proof", proof("u_alice", "alice", ep["alice"]))
@@ -179,7 +179,7 @@ check("proof refreshes this machine's proof", "alice on desktop is verified, for
 out = cli("alice", "proof", proof("u_alice", "alicia", ep["alice"]))
 check("…but not one for another name", "this proof is for alicia, but this machine is alice in the team" in out, out)
 # Someone else signed in, or not at all, can't be alex or alice; a proof Reason didn't sign, or for another machine, gets nobody in.
-mal = dict(env("alice"), REASON_NETWORK_HOME=os.path.join(D, "mallory"), REASON_NETWORK_MACHINE="evil")
+mal = dict(env("alice"), KLYPIX_NETWORK_HOME=os.path.join(D, "mallory"), KLYPIX_NETWORK_MACHINE="evil")
 mal_ep = run(mal, "endpoint")[0]
 out, both = run(mal, "join", link.group(1), "--proof", proof("u_mallory", "alex", mal_ep), "--no-setup", "--json")
 check("a name verified by another account is taken: name_taken", as_json(out) == {"error": "name_taken"}, both)
@@ -190,11 +190,11 @@ check("a forged proof is refused", "signature doesn't verify" in out and "Joined
 _, out = run(mal, "join", link.group(1), "--proof", proof("u_alex", "alex", ep["alex"]), "--no-setup")
 check("someone else's proof is refused", "for another machine" in out and "Joined" not in out, out)
 _, out = run(mal, "init", "x", "--proof", proof("u_mallory", "mallory", mal_ep, aud="reason"), "--no-setup")
-check("init refuses a proof for something else", "isn't from Reason Network" in out and "Created" not in out, out)
+check("init refuses a proof for something else", "isn't from KLYPIX network" in out and "Created" not in out, out)
 out, both = run(mal, "join", link.group(1), "--proof", "garbage", "--no-setup", "--json")
 check("with --json every failure is JSON", as_json(out) == {"error": "this sign-in proof is damaged"}, both)
 # The Reason CLI joins over the daemon's socket (the proof never on a command line): its error replies carry a code.
-sock_path = os.path.join(mal["REASON_NETWORK_HOME"], "network.sock")
+sock_path = os.path.join(mal["KLYPIX_NETWORK_HOME"], "network.sock")
 if len(sock_path) < 100:  # longer ones get a hashed name elsewhere (see paths::socket)
     import socket
     with socket.socket(socket.AF_UNIX) as sock:
@@ -214,12 +214,12 @@ check("a sign-in joins only with a link, never a four-word code", "not a four-wo
 run(mal, "stop")
 check("alex's team still has just the two", len(as_json(cli("alex", "team", "--json")).get("members", [])) == 2)
 # alex signed in on a second computer: the same account takes its name there, let in by anyone's machine.
-mini = dict(env("alex"), REASON_NETWORK_HOME=os.path.join(D, "alex-mini"), REASON_NETWORK_MACHINE="mini")
+mini = dict(env("alex"), KLYPIX_NETWORK_HOME=os.path.join(D, "alex-mini"), KLYPIX_NETWORK_MACHINE="mini")
 mini_ep = run(mini, "endpoint")[0]
 alice_link = re.search(r"(https://\S+#rn1-\S+)", cli("alice", "link")).group(1)
 _, out = run(mini, "join", alice_link, "--proof", proof("u_alex", "alex", mini_ep), "--no-setup")
 check("another computer of the same account joins under its verified name (alice's link: alex's machine lets it in)", "Joined team vibes as alex on mini." in out, out)
-check("…and gets the invite line", "Join the Reason Network: https://reasonmachines.com/network/join/#rn1-" in out, out)
+check("…and gets the invite line", "Join the KLYPIX network: https://klypix.com/network/join/#rn1-" in out, out)
 time.sleep(3)
 out = cli("alex", "team")
 check("…which every machine takes", re.search(r"alex \(verified\)\s+mini", out) is not None, out)
@@ -232,9 +232,9 @@ run(mini, "leave")
 run(mini, "stop")
 out = cli("alice", "join", link.group(1), "--as", "bob", "--no-setup")
 check("joining a second team is refused while yours has others, and says how to switch",
-      "already in team 'vibes' (with alex)" in out and "reason-network leave" in out, out)
+      "already in team 'vibes' (with alex)" in out and "klypix-network leave" in out, out)
 # Installed on its own and started a team by itself first: the team link still just works.
-sam = dict(env("alice"), REASON_NETWORK_HOME=os.path.join(D, "sam"), REASON_NETWORK_MACHINE="mini")
+sam = dict(env("alice"), KLYPIX_NETWORK_HOME=os.path.join(D, "sam"), KLYPIX_NETWORK_MACHINE="mini")
 r = subprocess.run([BIN, "init", "solo", "--as", "sam", "--no-setup"], env=sam, capture_output=True, text=True, timeout=90)
 solo_link = re.search(r"(https://\S+#rn1-\S+)", run(sam, "link")[1]).group(1)
 # (With a link as earlier builds wrote it.)
@@ -248,23 +248,23 @@ check("a link that names only this machine, which left, says to ask for a fresh 
       "names only this computer" in out and "fresh link" in out and "ourself" not in out, out)
 subprocess.run([BIN, "stop"], env=sam, capture_output=True)
 os.makedirs(os.path.join(D, "bob"), exist_ok=True)
-bob = dict(env("alice"), REASON_NETWORK_HOME=os.path.join(D, "bob"), REASON_NETWORK_MACHINE="nuc")
+bob = dict(env("alice"), KLYPIX_NETWORK_HOME=os.path.join(D, "bob"), KLYPIX_NETWORK_MACHINE="nuc")
 out = cli("alex", "invite", "--code")
 code = re.search(r"One-time code for a teammate: ([a-z]+(?:-[a-z]+){3})", out)
 check("invite --code prints a four-word code", bool(code), out)
 r = subprocess.run([BIN, "join", code.group(1).replace("-", " ").upper(), "--as", "bob", "--no-setup"], env=bob,
                    capture_output=True, text=True, timeout=90)
 check("joining with just the code works", "Joined team vibes as bob on nuc." in r.stdout, r.stdout + r.stderr)
-r = subprocess.run([BIN, "join", code.group(1), "--as", "bob2", "--no-setup"], env=dict(bob, REASON_NETWORK_HOME=os.path.join(D, "bob2")),
+r = subprocess.run([BIN, "join", code.group(1), "--as", "bob2", "--no-setup"], env=dict(bob, KLYPIX_NETWORK_HOME=os.path.join(D, "bob2")),
                    capture_output=True, text=True, timeout=90)
 check("a used code doesn't work twice", "Joined" not in r.stdout + r.stderr, r.stdout + r.stderr)
-subprocess.run([BIN, "stop"], env=dict(bob, REASON_NETWORK_HOME=os.path.join(D, "bob2")), capture_output=True)
+subprocess.run([BIN, "stop"], env=dict(bob, KLYPIX_NETWORK_HOME=os.path.join(D, "bob2")), capture_output=True)
 out = subprocess.run([BIN, "link"], env=bob, capture_output=True, text=True, timeout=30).stdout
 check("any member can show the same team link", link.group(1).split("#")[1][:40] in out.replace("\n", ""), out)
 subprocess.run([BIN, "stop"], env=bob, capture_output=True)
 
 # --- removal while online: the removed machine never gets the link that replaces the one it knew ---
-eve = dict(env("alice"), REASON_NETWORK_HOME=os.path.join(D, "eve"), REASON_NETWORK_MACHINE="tab")
+eve = dict(env("alice"), KLYPIX_NETWORK_HOME=os.path.join(D, "eve"), KLYPIX_NETWORK_MACHINE="tab")
 eve_link = re.search(r"(https://\S+#rn1-\S+)", cli("alex", "link")).group(1)
 _, out = run(eve, "join", eve_link, "--as", "eve", "--no-setup")
 check("eve joins", "Joined team vibes as eve on tab." in out, out)
@@ -302,7 +302,7 @@ check("the others are still connected", re.search(r"alex \(verified\)\s+laptop\s
 PRIVATE = os.path.join(D, "private")
 os.makedirs(PRIVATE, exist_ok=True)
 out = cli("alex", "folder", PRIVATE, "off")
-check("folder <path> off turns Reason Network off there", "Reason Network is off in" in out and "private on` undoes it" in out, out)
+check("folder <path> off turns KLYPIX network off there", "KLYPIX network is off in" in out and "private on` undoes it" in out, out)
 check("…in the config's [folders]", re.search(r'\[folders\]\n".*private" = "off"', open(os.path.join(H["alex"], "config.toml")).read()) is not None)
 out = cli("alex", "folder", os.path.join(PRIVATE, "sub"), "on")
 check("…and a folder in it stays off", "sub is still off: it is in" in out, out)
@@ -317,16 +317,16 @@ time.sleep(7)  # Claude's session registers after 3s; presence propagates every 
 out = codex.tool("list_team", {}, meta)
 claude_name = os.path.basename(ROOT).lower() + "-claude"
 check("alice's agent sees alex's session across machines", claude_name in out and "alex (verified) · laptop" in out, out)
-check("list_team gives the invite line", "Invite people with this line: Join the Reason Network: https://reasonmachines.com/network/join/#rn1-" in out, out)
+check("list_team gives the invite line", "Invite people with this line: Join the KLYPIX network: https://klypix.com/network/join/#rn1-" in out, out)
 check("…but not the one in alex's folder that is off", "private-claude" not in out, out)
 out = hidden.tool("list_team", {})
-check("in a folder that is off, the tools say so", out == "Your user turned Reason Network off for this folder", out)
+check("in a folder that is off, the tools say so", out == "Your user turned KLYPIX network off for this folder", out)
 out = hook("alex", "codex", "session-start", {"session_id": "33333333-cccc", "cwd": PRIVATE, "hook_event_name": "SessionStart"})
 check("…and hooks say nothing", out == "", out)
 out = hook("alex", "cursor", "session-start", {"conversation_id": "c-off", "workspace_roots": [os.path.join(D, "work"), PRIVATE]})
 check("…nor for a session with that folder open beside another", out == "", out)
 # A person's terminal: none of the variables agents set for their commands (this test may run in an agent's).
-AGENT_VARS = ("AI_AGENT", "CODEX_", "GEMINI_CLI", "REASON_NETWORK_AGENT", "TINCAN_AGENT", "GROK_", "CURSOR_AGENT", "OPENCODE", "COPILOT_")
+AGENT_VARS = ("AI_AGENT", "CODEX_", "GEMINI_CLI", "KLYPIX_NETWORK_AGENT", "TINCAN_AGENT", "GROK_", "CURSOR_AGENT", "OPENCODE", "COPILOT_")
 person = {k: v for k, v in env("alex").items() if not k.startswith(AGENT_VARS)}
 r = subprocess.run([BIN, "send", "alice/work-codex", "from alex's terminal in the folder that is off"], env=person, cwd=PRIVATE,
                    capture_output=True, text=True, timeout=90)
@@ -338,22 +338,22 @@ with open(os.path.join(PRIVATE, "notes.txt"), "w") as f:
 agent_shell = dict(person, CLAUDECODE="1", CLAUDE_CODE_SESSION_ID="44444444-dddd", CLAUDE_PROJECT_DIR=PRIVATE)
 r = subprocess.run([BIN, "send", "alice/work-codex", "--file", "notes.txt", "from an agent's shell there"], env=agent_shell, cwd=PRIVATE,
                    capture_output=True, text=True, timeout=90)
-check("…but an agent's shell there sends nothing, not even as the terminal", "turned Reason Network off for this folder" in r.stderr
+check("…but an agent's shell there sends nothing, not even as the terminal", "turned KLYPIX network off for this folder" in r.stderr
       and "→" not in r.stdout, r.stdout + r.stderr)
 out = cli("alex", "who")
 check("…nor is either session on alex's own list", "private-" not in out and claude_name in out, out)
 out = cli("alice", "send", "alex/private-claude", "x")
 check("…and a teammate can't message it", "no session called 'alex/private-claude'" in out, out)
 hidden.close()
-# (After Codex's first tool call registered it.) Nobody reports a status: Reason Network reads the plan step in progress from Codex's own transcript.
+# (After Codex's first tool call registered it.) Nobody reports a status: KLYPIX network reads the plan step in progress from Codex's own transcript.
 rollout = os.path.join(D, "rollout.jsonl")
-plan = {"plan": [{"step": "set up fixtures", "status": "completed"}, {"step": "testing cross-machine Reason Network", "status": "in_progress"}]}
+plan = {"plan": [{"step": "set up fixtures", "status": "completed"}, {"step": "testing cross-machine KLYPIX network", "status": "in_progress"}]}
 with open(rollout, "w") as f:
     f.write(json.dumps({"type": "response_item", "payload": {"type": "function_call", "name": "update_plan", "arguments": json.dumps(plan)}}) + "\n")
 hook("alice", "codex", "doing", {"session_id": "11111111-aaaa", "cwd": os.path.join(D, "work"), "transcript_path": rollout})
 time.sleep(3)
 out = cli("alex", "who")
-check("alex sees what alice's codex is doing, read from its plan", "work-codex" in out and "testing cross-machine Reason Network" in out, out)
+check("alex sees what alice's codex is doing, read from its plan", "work-codex" in out and "testing cross-machine KLYPIX network" in out, out)
 
 # --- messages across machines ---
 def counts(who):
@@ -367,7 +367,7 @@ def counts(who):
     today = next((d for d in days if d["day"] == time.strftime("%Y-%m-%d", time.gmtime())), {})
     return today.get("sent", 0), today.get("received", 0)
 before = {who: counts(who) for who in H}
-out = codex.tool("send_message", {"to": f"alex/{claude_name}", "message": "Reason Network e2e (cross-machine push): ignore this."}, meta)
+out = codex.tool("send_message", {"to": f"alex/{claude_name}", "message": "KLYPIX network e2e (cross-machine push): ignore this."}, meta)
 want = "delivered into the session" if IN_CLAUDE else "only sees it when it checks"
 check("cross-machine send reaches the Claude session", want in out, out)
 out = cli("alex", "send", "alice/work-codex", "hello from alex's terminal")
@@ -442,7 +442,7 @@ def inbox(who):
     return sorted(os.listdir(p)) if os.path.isdir(p) else []
 def message_with(out, text):
     """The part of an inbox listing for the message saying `text`: its frame and the file list after it."""
-    return next((part for part in out.split("<reason-message") if text in part.split("</reason-message>")[0]), "")
+    return next((part for part in out.split("<klypix-message") if text in part.split("</klypix-message>")[0]), "")
 def saved(out, who):
     """The file paths a message lists, if each is in `who`'s inbox folder, readable and not executable."""
     paths = re.findall(r"^- (/.+)$", out, re.M)
@@ -456,7 +456,7 @@ check("a send with files is accepted", "→ alice/work-codex" in out and "refuse
 out = codex.tool("check_inbox", {}, meta)
 paths = saved(out, "alice")
 check("files arrive in the message, listed by where they are saved",
-      "Files they sent with" in out.split("</reason-message>")[-1] and [os.path.basename(p) for p in paths] == ["notes.md", "app.json"], out)
+      "Files they sent with" in out.split("</klypix-message>")[-1] and [os.path.basename(p) for p in paths] == ["notes.md", "app.json"], out)
 check("…in folders named by the recipient, not by the sender's message id",
       all(re.fullmatch(r"[0-9A-HJKMNP-TV-Z]{26}", os.path.basename(os.path.dirname(p))) for p in paths)
       and re.search(r'id="([0-9A-Z]{26})"', out).group(1) not in inbox("alice"), out)
@@ -532,7 +532,7 @@ out = codex.tool("check_inbox", {}, meta)
 check("held message is not delivered", "held message" not in out, out)
 check("…and its files aren't saved yet", inbox("alice") == before, inbox("alice"))
 out = cli("alice", "held")
-check("Reason Network held lists it", "held message" in out and "notes.md (saved once approved)" in out, out)
+check("KLYPIX network held lists it", "held message" in out and "notes.md (saved once approved)" in out, out)
 approved = cli("alice", "approve", "--all")
 out = codex.tool("check_inbox", {}, meta)
 check("approved message is delivered", "held message" in out, out)
@@ -589,7 +589,7 @@ out = cli("alice", "team")
 check("alice's machine learns it was removed when it reconnects", "not in a team" in out, out)
 
 out = cli("alex", "folder", PRIVATE, "on")
-check("folder <path> on puts it back", "Reason Network is on in" in out and "private" not in open(os.path.join(H["alex"], "config.toml")).read(), out)
+check("folder <path> on puts it back", "KLYPIX network is on in" in out and "private" not in open(os.path.join(H["alex"], "config.toml")).read(), out)
 
 claude.close()
 cli("alex", "stop")

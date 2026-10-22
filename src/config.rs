@@ -10,7 +10,7 @@ pub struct Config {
     pub person: Option<String>,
     /// Show teammates full working directories (otherwise only the last component, plus repo@branch).
     pub share_paths: bool,
-    /// Show teammates this machine's Claude Code sessions that don't have Reason Network loaded.
+    /// Show teammates this machine's Claude Code sessions that don't have KLYPIX network loaded.
     pub share_unmanaged: bool,
     /// Find teammates on the local network with mDNS.
     pub lan: bool,
@@ -21,22 +21,22 @@ pub struct Config {
     /// Install new releases when they come out (the daemon checks every few hours).
     pub auto_update: bool,
     pub inbound: Inbound,
-    /// Folders whose sessions stay off the network, e.g. `"~/personal" = "off"` (`reason-network folder`). The deepest
+    /// Folders whose sessions stay off the network, e.g. `"~/personal" = "off"` (`klypix-network folder`). The deepest
     /// entry that holds a session's folder decides; `off` is the only value so far.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub folders: BTreeMap<String, String>,
 }
 
 /// What an agent's tools say in a folder whose sessions are off the network.
-pub const OFF_HERE: &str = "Your user turned Reason Network off for this folder";
+pub const OFF_HERE: &str = "Your user turned KLYPIX network off for this folder";
 
 /// What a call naming no session gets, from an agent whose sessions share one MCP server, while one of them works in a
 /// folder that is off (the call may be that one's).
-pub const BUSY_OFF: &str = "Reason Network can't tell which session this call comes from while another session of this \
+pub const BUSY_OFF: &str = "KLYPIX network can't tell which session this call comes from while another session of this \
                             agent works in a folder where it is off; try again in a few minutes";
 
 /// What happens to messages from teammates' agents: `accept` delivers them, `hold` waits for you to approve
-/// (`reason-network held`), `refuse` bounces them.
+/// (`klypix-network held`), `refuse` bounces them.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Inbound {
@@ -78,7 +78,7 @@ impl Default for Inbound {
 impl Config {
     pub fn load() -> Self {
         Self::load_strict().unwrap_or_else(|e| {
-            eprintln!("reason-network: ignoring {} (fix or delete it): {e}", paths::config().display());
+            eprintln!("klypix-network: ignoring {} (fix or delete it): {e}", paths::config().display());
             Config::default()
         })
     }
@@ -309,7 +309,7 @@ mod tests {
     }
 
     fn temp() -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("reason-network-folders-{}", ulid::Ulid::generate()));
+        let d = std::env::temp_dir().join(format!("klypix-network-folders-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(d.join("real").join("personal").join("sub")).unwrap();
         std::fs::create_dir_all(d.join("x")).unwrap();
         d
