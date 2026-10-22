@@ -1,7 +1,7 @@
-//! Reason sign-in proofs: a statement signed by Reason that a machine's key (its endpoint id) belongs to a Reason
-//! account, and the name that account goes by. A compact JWS (RS256: RSASSA-PKCS1-v1_5 with SHA-256, from Reason's
-//! cloud-access issuer), checked here against Reason's public keys, which are compiled in: verifying one never calls
-//! Reason. Every machine checks every proof it is shown itself.
+//! KLYPIX sign-in proofs: a statement signed by KLYPIX that a machine's key (its endpoint id) belongs to a KLYPIX
+//! account, and the name that account goes by. A compact JWS (RS256: RSASSA-PKCS1-v1_5 with SHA-256, from KLYPIX's
+//! `network-proof` function), checked here against KLYPIX's public keys, which are compiled in: verifying one never
+//! calls KLYPIX. Every machine checks every proof it is shown itself.
 
 use anyhow::{Result, anyhow, bail};
 use data_encoding::BASE64URL_NOPAD;
@@ -9,10 +9,10 @@ use iroh::EndpointId;
 use ring::signature::{RSA_PKCS1_2048_8192_SHA256, RsaPublicKeyComponents};
 use serde::{Deserialize, Serialize};
 
-const ISSUER: &str = "https://reasonmachines.com/network";
+const ISSUER: &str = "https://klypix.com/network";
 const AUDIENCE: &str = "klypix-network";
 const TYPE: &str = "klypix-network-proof";
-/// Refused before decoding. A proof Reason signs with a 4096-bit key is at most about 1.6 KB: the signature is 512
+/// Refused before decoding. A proof KLYPIX signs with a 4096-bit key is at most about 1.6 KB: the signature is 512
 /// bytes (683 in base64url), the header with a 64-character key id about 130, and the claims (a 40-character name, an
 /// email of at most 254, the 64-digit endpoint) at most about 790. Even an 8192-bit key, the most `ring` takes, stays
 /// under 2.3 KB.
@@ -22,28 +22,25 @@ const MAX_SKEW_SECS: i64 = 86_400;
 /// The smallest RSA key trusted, in bits.
 const MIN_BITS: usize = 2048;
 
-/// Reason's proof-signing public keys: key id, then the RSA modulus `n` and exponent `e` in base64url (as in a JWK). In
-/// debug builds `KLYPIX_NETWORK_TRUST_KEYS` (a JWKS) adds keys, for tests.
+/// KLYPIX's proof-signing public keys: key id, then the RSA modulus `n` and exponent `e` in base64url (as in a JWK).
+/// In debug builds `KLYPIX_NETWORK_TRUST_KEYS` (a JWKS) adds keys, for tests.
 ///
 /// Never remove a key, even a retired one: who holds a name in a team rests on proofs' signatures (expired proofs
 /// included), so a build without a key that signed some would drop machines that every other build keeps. Add the
 /// new key next to it instead.
 ///
-/// The cloud-access issuer's KMS key (`https://oidc.reasonmachines.com`, which signs proofs as `iss`
-/// `https://reasonmachines.com/network`), from https://oidc.reasonmachines.com/.well-known/jwks.json on 2026-10-20.
-/// Only that one: proofs come only from KMS (the issuer refuses rather than falling back to its env key,
-/// `reason-oidc-prod-2026-10-07`, which isn't trusted here). `the_production_keys_are_pinned` pins it to a hash of its
-/// modulus.
+/// The key KLYPIX's `network-proof` function signs with (its private half is a server secret, never in this repo).
+/// `the_production_keys_are_pinned` pins it to a hash of its modulus.
 const KEYS: &[(&str, &str, &str)] = &[(
-    "reason-oidc-kms-2026-10",
-    "s5x90QSBmHGl4adzvrjLvQ1ZRiwkDZGJ3pZs7CzPCxjKOBjoPoV6INAi4b8c3F4fMHH1T2BCXH9jX4wQjOCCzZBmB-E9Ch395WiqbLhyY2pH9V-ksbL9DGibS8xCoTT7EySB3FECzd_mHq-kQBCGxKnmBU0uETiPJLV276MzoBFsA8-s0PhsKqiQnUD3AKxHdDX-sWyI145QZasjZIT30Z8ixdRfrcUrLBMtWDhIqsOSP58i3_-3U-2gz_yG-7usgpyTcxCEU1IQGQtKBcJEVwd5QrbGgGE0w_uLxm2anfpT_eCZqOS_TWGYivVZ7TuqnxZgtON6kQgMNctSwprMDQ",
+    "klypix-network-2026-10",
+    "0d-aLZv8tZhszyX7mXplyAcPYdi779LYhvXgbxlaSQ3HmPVA5L-sz_VtNQ2uVcBHfu15ogtJE83mf5jfHZxmm9OHiDhXJ5a0R3D0nqsxeP-2--HNxaO9lRQaJauGnbbmVeAHfBJEcdIS8ZbjOzn4iVWWoZKQ_pNsIQHm8XfATZS-64iJiwNPC7388YvF247BFc8XvnoH-oMZy-9oO0krrCysSa9MjKcsM2O8bzpOUH3Bu3P-f5geDsNZ_LiC1kS19Lv2qfH0cGhiXX8kyRILyeqfA3kAz3U6OgslmR_oGOWmuEICKIeHMsMHKH_R-g6gqYx_jbNkDtcNaBmlYVc6Bw",
     "AQAB",
 )];
 
 /// What a proof says.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Proof {
-    /// The Reason account.
+    /// The KLYPIX account.
     pub sub: String,
     /// The account's name in teams: 1 to 40 of `a-z`, `0-9` and `-`.
     pub name: String,
@@ -120,7 +117,7 @@ fn trusted() -> &'static [(String, Key)] {
     })
 }
 
-/// Checks `jws` for the machine `endpoint`: Reason's signature, issuer, audience, expiry, and that it names this
+/// Checks `jws` for the machine `endpoint`: KLYPIX's signature, issuer, audience, expiry, and that it names this
 /// machine.
 pub fn verify(jws: &str, endpoint: &EndpointId) -> Result<Proof> {
     verify_with(jws, endpoint, crate::util::now_ms() / 1000, trusted(), true)
@@ -157,7 +154,7 @@ fn verify_with(jws: &str, endpoint: &EndpointId, now: i64, keys: &[(String, Key)
     Ok(p)
 }
 
-/// The claims of `jws`, a compact JWS of type `typ` (a `what`, in errors) that one of Reason's keys signed, unparsed.
+/// The claims of `jws`, a compact JWS of type `typ` (a `what`, in errors) that one of KLYPIX's keys signed, unparsed.
 /// What else they must say is the caller's to check.
 pub fn verify_signed(jws: &str, typ: &str, what: &str, max_len: usize) -> Result<Vec<u8>> {
     signed_claims(jws, typ, what, max_len, trusted())
@@ -202,7 +199,7 @@ pub(crate) mod tests {
         cell.get_or_init(|| RsaKeyPair::from_pkcs8(der).expect("a test key"))
     }
 
-    /// The key test builds trust (see `trusted`), standing in for Reason's: a 2048-bit RSA key made for these tests.
+    /// The key test builds trust (see `trusted`), standing in for KLYPIX's: a 2048-bit RSA key made for these tests.
     pub fn signer() -> &'static RsaKeyPair {
         static K: OnceLock<RsaKeyPair> = OnceLock::new();
         pkcs8(&K, include_bytes!("testdata/proof-signer.pk8"))
@@ -330,8 +327,8 @@ pub(crate) mod tests {
 
     #[test]
     fn the_production_keys_are_pinned() {
-        // SHA-256 of the modulus, as Reason's JWKS gave it on 2026-10-20: an accidental edit to `KEYS` fails here.
-        let pins = [("reason-oidc-kms-2026-10", "c8a5d1e79ecc6c6056a7a11eac0b870a664f4b4ecb27392e7db4544c23e039c4")];
+        // SHA-256 of the modulus of KLYPIX's proof key (2026-10-22): an accidental edit to `KEYS` fails here.
+        let pins = [("klypix-network-2026-10", "ab86088e190f047b87cd1e6f31fcf9c1bafaef4216ea40b2866a486eac8d0a8c")];
         assert_eq!(KEYS.len(), pins.len());
         for ((kid, n, e), (pinned_kid, pinned)) in KEYS.iter().zip(pins) {
             assert_eq!(*kid, pinned_kid);
@@ -340,8 +337,9 @@ pub(crate) mod tests {
             assert_eq!(hash, pinned, "{kid}");
             assert_eq!(k.e, [1, 0, 1], "{kid}");
         }
-        // It's trusted (next to the test key); the issuer's env key isn't.
-        assert!(trusted().iter().any(|(k, _)| k == "reason-oidc-kms-2026-10"));
+        // It's trusted (next to the test key); the upstream engine's issuer keys aren't.
+        assert!(trusted().iter().any(|(k, _)| k == "klypix-network-2026-10"));
+        assert!(!trusted().iter().any(|(k, _)| k == "reason-oidc-kms-2026-10"));
         assert!(!trusted().iter().any(|(k, _)| k == "reason-oidc-prod-2026-10-07"));
     }
 

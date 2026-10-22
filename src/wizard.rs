@@ -218,7 +218,7 @@ pub async fn agents_and_preferences() -> Result<()> {
         .initial_value(cfg.share_paths)
         .interact()?;
     if cfg!(target_os = "macos") && service {
-        cfg.tray = confirm("Show Reason in the menu bar?").initial_value(cfg.tray).interact()?;
+        cfg.tray = confirm("Show KLYPIX in the menu bar?").initial_value(cfg.tray).interact()?;
     }
     cfg.save()?;
 

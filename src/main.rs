@@ -173,7 +173,7 @@ enum Cmd {
         /// Your own iroh relay, from the start (see `relay`)
         #[arg(long)]
         relay: Option<String>,
-        /// This machine's Reason sign-in proof: your name is then the one it gives
+        /// This machine's KLYPIX sign-in proof: your name is then the one it gives
         #[arg(long)]
         proof: Option<String>,
         /// Print the result as JSON
@@ -208,7 +208,7 @@ enum Cmd {
         person: Option<String>,
         #[arg(long)]
         no_setup: bool,
-        /// This machine's Reason sign-in proof: your name is then the one it gives
+        /// This machine's KLYPIX sign-in proof: your name is then the one it gives
         #[arg(long)]
         proof: Option<String>,
         /// Print the result as JSON
@@ -220,7 +220,7 @@ enum Cmd {
         #[arg(long)]
         json: bool,
     },
-    /// Attach or refresh this machine's Reason sign-in proof, which verifies your name to teammates
+    /// Attach or refresh this machine's KLYPIX sign-in proof, which verifies your name to teammates
     Proof { jws: String },
     /// Print this machine's endpoint id (what a sign-in proof names)
     Endpoint,
