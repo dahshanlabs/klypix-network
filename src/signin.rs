@@ -42,6 +42,8 @@ pub async fn sign_in(endpoint: EndpointId, browser: bool) -> Result<(String, cra
     let url = connect_url(&endpoint, Some((port, &state)));
     let manual = connect_url(&endpoint, None);
 
+    let id = endpoint.to_string();
+    println!("This computer: {}…{} (the sign-in page shows the same).", &id[..8], &id[id.len() - 4..]);
     if browser && open(&url) {
         println!("Opening your browser to sign in with your KLYPIX account...");
         println!("If it doesn't open, go to:\n  {url}");
