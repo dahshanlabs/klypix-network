@@ -36,9 +36,10 @@ const MAX_FRAME: usize = 4 << 20;
 const ACK_TIMEOUT: Duration = Duration::from_secs(5);
 /// Two machines that dial each other at once open their connections within this long of each other.
 const DIALED_TOGETHER: Duration = Duration::from_secs(5);
-/// The relay of a team that doesn't run its own while this machine has no list of Reason's relays (see `relays`).
+/// The relay of a team that doesn't run its own while this machine has no list of KLYPIX's relays yet (see `relays`):
+/// the signed list at `relays::URL` replaces it within seconds of a first start, so moving the relay needs no new build.
 /// n0's public ones are rate-limited and meant for testing.
-pub const DEFAULT_RELAYS: &[&str] = &["https://relay-sfo1.compute.reasonmachines.com"];
+pub const DEFAULT_RELAYS: &[&str] = &["https://relay-production-49d6.up.railway.app"];
 
 pub fn default_relays() -> Vec<RelayUrl> {
     DEFAULT_RELAYS.iter().map(|u| u.parse().expect("default relays are urls")).collect()
@@ -78,7 +79,7 @@ pub struct JoinRequest {
     pub secret: String,
     pub person: String,
     pub machine: String,
-    /// The joiner's Reason sign-in proof. Builds before proofs ignore it.
+    /// The joiner's KLYPIX sign-in proof. Builds before proofs ignore it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proof: Option<String>,
     /// Let another computer of the account holding the name in only from one of that person's machines (see
@@ -1302,10 +1303,10 @@ mod tests {
     }
 
     #[test]
-    fn the_default_relay_is_reasons_and_none_of_n0s() {
+    fn the_default_relay_is_klypixs_and_none_of_n0s() {
         let relays = default_relays();
         assert_eq!(relays.len(), DEFAULT_RELAYS.len());
-        assert_eq!(relays[0].to_string(), "https://relay-sfo1.compute.reasonmachines.com/");
+        assert_eq!(relays[0].to_string(), "https://relay-production-49d6.up.railway.app/");
         assert!(relays.iter().all(|u| u.scheme() == "https" && !u.as_str().contains(".n0.iroh.link")));
     }
 

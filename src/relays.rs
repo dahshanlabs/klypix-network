@@ -1,9 +1,9 @@
-//! The relays of a team that doesn't run its own: Reason's, one per region, as Reason lists them at [`URL`]. Each
+//! The relays of a team that doesn't run its own: KLYPIX's, one per region, as KLYPIX lists them at [`URL`]. Each
 //! machine makes the nearest its home relay, and is reached there by teammates on any of them (relays don't talk to
 //! each other; iroh dials a peer through the peer's home relay).
 //!
 //! The list steers every such machine's relay traffic. That traffic is end-to-end encrypted, but a list of someone
-//! else's relays could cut machines off or show who talks to whom, so it is taken only signed with Reason's proof key
+//! else's relays could cut machines off or show who talks to whom, so it is taken only signed with KLYPIX's proof key
 //! (`typ` `klypix-network-relays`, its own `iss`: neither a sign-in proof nor anything else signed with that key passes
 //! for one) and fetched only over HTTPS from [`URL`], following no redirect. Any fault rejects the whole list, and so
 //! does one issued before the list this machine has (no rolling back to an older one).
@@ -21,9 +21,9 @@ use std::{
     time::Duration,
 };
 
-pub const URL: &str = "https://reasonmachines.com/network/relays.json";
+pub const URL: &str = "https://klypix.com/network/relays.json";
 const TYPE: &str = "klypix-network-relays";
-const ISSUER: &str = "https://reasonmachines.com/network/relays";
+const ISSUER: &str = "https://klypix.com/network/relays";
 const AUDIENCE: &str = "klypix-network";
 /// Refused beyond this, served or cached.
 const MAX_BYTES: usize = 64 << 10;
@@ -225,7 +225,7 @@ mod tests {
     use serde_json::{Value, json};
 
     fn region(r: &str) -> String {
-        format!("https://relay-{r}.compute.reasonmachines.com")
+        format!("https://relay-{r}.relays.klypix.com")
     }
 
     fn claims(urls: &[String]) -> Value {
@@ -254,6 +254,20 @@ mod tests {
     }
 
     #[test]
+    fn the_list_klypix_serves_verifies_with_the_production_key() {
+        // A copy of what https://klypix.com/network/relays.json serves (re-copy it whenever the list is signed again).
+        let doc: &[u8] = include_bytes!("testdata/klypix-relays.json");
+        let served: Value = serde_json::from_slice(doc).unwrap();
+        let claims = crate::proof::verify_signed(served["signed"].as_str().unwrap(), TYPE, "relay list", MAX_BYTES)
+            .expect("signed with the key compiled in");
+        let iat = serde_json::from_slice::<Value>(&claims).unwrap()["iat"].as_i64().unwrap();
+        let list = parse(doc, iat + 60, true).expect("a valid list");
+        let urls: Vec<String> = list.relays.iter().map(|u| u.to_string()).collect();
+        let defaults: Vec<String> = crate::net::default_relays().iter().map(|u| u.to_string()).collect();
+        assert_eq!(urls, defaults, "the served list and the built-in default name the same relays");
+    }
+
+    #[test]
     fn a_signed_list_gives_its_relays_in_order() {
         let got = parse(&doc(claims(&four())), now(), true).unwrap().relays;
         assert_eq!(
@@ -271,7 +285,7 @@ mod tests {
             doc(c)
         };
         let mut http = four();
-        http[2] = "http://relay-fra1.compute.reasonmachines.com".into();
+        http[2] = "http://relay-fra1.relays.klypix.com".into();
         assert!(bad(doc(claims(&http))).contains("not an https relay"));
         assert!(bad(doc(claims(&["not a url".into()]))).contains("not a relay url"));
         assert!(bad(doc(claims(&[]))).contains("has 0 relays"));

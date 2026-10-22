@@ -63,9 +63,29 @@ pub async fn onboard(
         outro(format!("`{CLI}` shows who's around; `{CLI} invite` gives you the team link."))?;
         return Ok(());
     }
-    let mut person = match person {
-        Some(p) => util::slug(&p),
-        None => ask_name()?,
+    // Signing in first gives the name teammates see, verified by KLYPIX; skipping it keeps everything else the same.
+    let mut proof = crate::signin::kept();
+    if proof.is_none()
+        && confirm("Sign in with your KLYPIX account? Teammates then see your name as verified.")
+            .initial_value(true)
+            .interact()?
+    {
+        match crate::signin::sign_in(crate::daemon::load_key()?.public(), true).await {
+            Ok((jws, p)) => {
+                log::success(format!("Signed in as {}.", p.name))?;
+                crate::signin::keep(&jws)?;
+                proof = Some(jws);
+            }
+            Err(e) => log::warning(format!("Not signed in ({e:#}). `{CLI} signin` does it later."))?,
+        }
+    }
+    let signed_name = proof
+        .as_deref()
+        .and_then(|jws| crate::proof::verify(jws, &crate::daemon::load_key().ok()?.public()).ok().map(|p| p.name));
+    let mut person = match (person, signed_name) {
+        (Some(p), _) => util::slug(&p),
+        (None, Some(name)) => name,
+        (None, None) => ask_name()?,
     };
     let start = match (start, &invite) {
         (Some(s), _) => s,
@@ -84,9 +104,10 @@ pub async fn onboard(
         let sp = spinner();
         sp.start("Creating the team...");
         let t: TeamInfo = link
-            .call(Request::CreateTeam { name, person, relay: None, proof: None })
+            .call(Request::CreateTeam { name, person, relay: None, proof: proof.clone() })
             .await
             .inspect_err(|e| sp.error(crate::shown(&format!("{e:#}"))))?;
+        crate::signin::forget();
         crate::wait_exit(crate::daemon_pid()).await;
         sp.stop(crate::shown(&format!("Created team {}. You are {} on {}.", t.name, t.person, t.machine)));
     } else {
@@ -102,10 +123,11 @@ pub async fn onboard(
             let sp = spinner();
             sp.start("Joining...");
             match link
-                .call::<TeamInfo>(Request::Join { ticket: text.clone(), person: person.clone(), proof: None })
+                .call::<TeamInfo>(Request::Join { ticket: text.clone(), person: person.clone(), proof: proof.clone() })
                 .await
             {
                 Ok(t) => {
+                    crate::signin::forget();
                     crate::wait_exit(crate::daemon_pid()).await;
                     sp.stop(crate::shown(&format!("Joined team {} as {} on {}.", t.name, t.person, t.machine)));
                     break;

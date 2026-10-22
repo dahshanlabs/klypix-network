@@ -1,4 +1,5 @@
-# Installs the KLYPIX network engine on its own for Windows (without Reason sign-in: names aren't verified). In PowerShell:
+# Installs KLYPIX network for Windows, then hands over to it: it offers to sign in with your KLYPIX account (in the
+# browser), then starts or joins a team. In PowerShell:
 #
 #   irm <this url> | iex                                                  install, then set up (start or join a team)
 #   & ([scriptblock]::Create((irm <this url>))) <team link>               install, then join that team

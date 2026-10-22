@@ -103,7 +103,7 @@ pub struct TeamState {
 }
 
 /// A join refused because one of the person's own computers should let this one in (another computer of the same
-/// Reason account): the joiner asks the ticket's other machines.
+/// KLYPIX account): the joiner asks the ticket's other machines.
 pub const SAME_ACCOUNT: &str = "same_account_needs_owner";
 
 /// Entries stamped further ahead than this are refused (a broken clock, or worse).
@@ -189,7 +189,7 @@ impl TeamState {
             || self.signed_proof(endpoint).is_some_and(|p| self.same_account(person, &p, endpoint))
     }
 
-    /// Whether `p` (the proof of `endpoint`) is for `person`, and from the Reason account another of `person`'s machines
+    /// Whether `p` (the proof of `endpoint`) is for `person`, and from the KLYPIX account another of `person`'s machines
     /// holds the name with. Expiry doesn't count here: who holds a name mustn't change as time passes.
     pub fn same_account(&self, person: &str, p: &Proof, endpoint: &EndpointId) -> bool {
         p.name == person
@@ -215,7 +215,7 @@ impl TeamState {
         self.member(endpoint).is_some_and(|m| self.proof(endpoint).is_some_and(|p| p.name == m.person))
     }
 
-    /// Verified people: each name an active machine has a proof for, good now, with the Reason account it belongs to.
+    /// Verified people: each name an active machine has a proof for, good now, with the KLYPIX account it belongs to.
     /// It's per person: all of a verified person's machines show as theirs.
     pub fn verified_people(&self) -> HashMap<String, String> {
         self.active()
@@ -370,11 +370,13 @@ impl TeamState {
             }
             Some(_) => {}
             // Another computer of the account that holds the name may join under it.
-            None if proof.is_some_and(|p| self.same_account(person, p, &joiner)) => {
-                if owner_only && self.member(&key.public()).is_none_or(|m| m.person != person) {
-                    bail!("only one of {person}'s own computers lets this one in as {person} ({SAME_ACCOUNT})")
-                }
+            None if proof.is_some_and(|p| self.same_account(person, p, &joiner))
+                && owner_only
+                && self.member(&key.public()).is_none_or(|m| m.person != person) =>
+            {
+                bail!("only one of {person}'s own computers lets this one in as {person} ({SAME_ACCOUNT})")
             }
+            None if proof.is_some_and(|p| self.same_account(person, p, &joiner)) => {}
             None if self.active().any(|m| m.person == person && m.endpoint != joiner) => {
                 bail!("'{person}' is already in this team; join with another name (--as)")
             }

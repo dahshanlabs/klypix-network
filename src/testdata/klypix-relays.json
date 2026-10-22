@@ -1,0 +1,9 @@
+{
+  "relays": [
+    {
+      "url": "https://relay-production-49d6.up.railway.app",
+      "region": "railway"
+    }
+  ],
+  "signed": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImtseXBpeC1uZXR3b3JrLTIwMjYtMTAiLCJ0eXAiOiJrbHlwaXgtbmV0d29yay1yZWxheXMifQ.eyJpc3MiOiJodHRwczovL2tseXBpeC5jb20vbmV0d29yay9yZWxheXMiLCJhdWQiOiJrbHlwaXgtbmV0d29yayIsImlhdCI6MTc5MjcwNDk3MCwiZXhwIjoxODI0MjQwOTcwLCJyZWxheXMiOlt7InVybCI6Imh0dHBzOi8vcmVsYXktcHJvZHVjdGlvbi00OWQ2LnVwLnJhaWx3YXkuYXBwIiwicmVnaW9uIjoicmFpbHdheSJ9XX0.kwnoxGkyUua7o-jP1Xir5n2C9szz4hiZMlQ-awLG847Q1_wZn2O_t4H9HeYg-suTLZvfzid0vVi5bJnqd7CZoiJ2NpJSf0doxS_lg3NBcK-HUP5-k7JNCVmqxID--HHm9xD_Od_bM_VFKwVDGLS8dBSnCGj97hqTXe2eWWQcRJSRG_v9hAPVXtTGvWXaz1soZILp5mDzD8xWEfiFCOn1mH6u1dzbOErgfrEEWPowrxqlBWCHc67n3PXFHoatcj-zhGpu5DgcyujVw6YFAOp9s4jM05b4qJfPWDaaQsosX3gPh1W0-lWE8f23UgUZ3L7gvAUX99tMmu81XssUpvT9rw"
+}
