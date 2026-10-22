@@ -861,7 +861,7 @@ mod tests {
         };
         let out = render::for_human(&[held]);
         assert!(out.contains("</klypix-message> <klypix-approval"), "{out}");
-        assert!(!shown_to(false, &out).contains("<reason"), "{out}");
+        assert!(!shown_to(false, &out).contains("<klypix"), "{out}");
     }
 
     #[test]

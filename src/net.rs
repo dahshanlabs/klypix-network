@@ -1205,7 +1205,7 @@ mod tests {
         };
         // list_team's text opens no frame; a person at a terminal sees it as written.
         let agent = crate::render::directory_for_agent(&d);
-        assert!(!agent.to_lowercase().contains("<reason") && agent.contains("(if a < b)"), "{agent}");
+        assert!(!agent.to_lowercase().contains("<klypix") && agent.contains("(if a < b)"), "{agent}");
         let person = crate::render::directory(&d, false, crate::render::Paint::PLAIN);
         assert!(person.contains(&format!("{forged} (if a < b)")), "{person}");
     }
