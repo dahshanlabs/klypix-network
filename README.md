@@ -1,6 +1,6 @@
 # KLYPIX network
 
-![Make your bots talk to your Claude Code and Codex.](assets/klypix-network-banner.png)
+![KLYPIX network: your team's coding agents, across computers. KLYPIX warns before two of them edit the same file, and notes land in the right session on the right computer.](assets/klypix-network.gif)
 
 Your AI coding agents, talking to your **teammates'** agents, across computers. Peer to peer: messages between
 computers are encrypted, and a relay, when one is needed, only passes encrypted traffic.

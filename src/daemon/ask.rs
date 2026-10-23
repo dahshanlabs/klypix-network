@@ -447,11 +447,11 @@ pub(super) fn asker_bin(name: &str, system: &[&str]) -> Option<std::path::PathBu
     system.iter().map(std::path::PathBuf::from).find(|p| p.is_file())
 }
 
-/// Reason's icon for the panel, kept beside the network's database.
+/// KLYPIX's icon for the panel, kept beside the network's database.
 #[cfg(target_os = "macos")]
 fn icon() -> Option<std::path::PathBuf> {
-    const ICON: &[u8] = include_bytes!("../../assets/reason.icns");
-    let path = crate::paths::home().join("reason.icns");
+    const ICON: &[u8] = include_bytes!("../../assets/klypix.icns");
+    let path = crate::paths::home().join("klypix.icns");
     if std::fs::metadata(&path).ok().map(|m| m.len()) != Some(ICON.len() as u64) {
         std::fs::write(&path, ICON).ok()?;
     }
